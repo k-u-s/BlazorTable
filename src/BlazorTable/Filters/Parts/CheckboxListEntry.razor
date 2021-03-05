@@ -1,6 +1,6 @@
 ﻿@typeparam TItem  
 
-<div class="form-group">
+<div class="form-group w-100">
     <div class="custom-control custom-checkbox">
         <input class="custom-control-input" type="checkbox" checked=@Checked id="@Value" value="@Value"
             @onclick="@(eventArgs => { OnClick?.Invoke(Value, Checked); })">

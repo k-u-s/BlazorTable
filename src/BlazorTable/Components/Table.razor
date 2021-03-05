@@ -184,7 +184,7 @@
                                         </td>
                                     }
 
-                                    @foreach (IColumn<TableItem> column in Columns)
+                                    @foreach (IColumn<TableItem> column in Columns.OrderBy(c => c.DisplayIndex))
                                     {
                                         @if (column.Visible)
                                         {
