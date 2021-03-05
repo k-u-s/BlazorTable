@@ -1,7 +1,6 @@
-﻿using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.Logging;
+﻿using BlazorTable.Localization;
+using Microsoft.AspNetCore.Components;
 using System;
-using System.ComponentModel;
 using System.Globalization;
 using System.Linq.Expressions;
 
@@ -11,6 +10,9 @@ namespace BlazorTable
     {
         [CascadingParameter(Name = "Column")]
         public IColumn<TableItem> Column { get; set; }
+
+        [Inject]
+        Microsoft.Extensions.Localization.IStringLocalizer<BlazorTable.Localization.Localization> Localization { get; set; }
 
         private NumberCondition Condition { get; set; }
 
@@ -140,28 +142,28 @@ namespace BlazorTable
 
     public enum NumberCondition
     {
-        [Description("Is equal to")]
+        [LocalizedDescription("NumberConditionIsEqualTo", typeof(Localization.Localization))]
         IsEqualTo,
 
-        [Description("Is not equal to")]
+        [LocalizedDescription("NumberConditionIsnotEqualTo", typeof(Localization.Localization))]
         IsNotEqualTo,
 
-        [Description("Is greater than or equal to")]
+        [LocalizedDescription("NumberConditionIsGreaterThanOrEqualTo", typeof(Localization.Localization))]
         IsGreaterThanOrEqualTo,
 
-        [Description("Is greater than")]
+        [LocalizedDescription("NumberConditionIsGreaterThan", typeof(Localization.Localization))]
         IsGreaterThan,
 
-        [Description("Is less than or equal to")]
+        [LocalizedDescription("NumberConditionIsLessThanOrEqualTo", typeof(Localization.Localization))]
         IsLessThanOrEqualTo,
 
-        [Description("Is less than")]
+        [LocalizedDescription("NumberConditionIsLessThan", typeof(Localization.Localization))]
         IsLessThan,
 
-        [Description("Is null")]
+        [LocalizedDescription("NumberConditionIsNull", typeof(Localization.Localization))]
         IsNull,
 
-        [Description("Is not null")]
+        [LocalizedDescription("NumberConditionIsNotNull", typeof(Localization.Localization))]
         IsNotNull
     }
 }

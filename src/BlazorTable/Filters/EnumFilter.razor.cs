@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using BlazorTable.Localization;
+using Microsoft.AspNetCore.Components;
 using System;
-using System.ComponentModel;
 using System.Globalization;
 using System.Linq.Expressions;
+using Microsoft.Extensions.Localization;
 
 namespace BlazorTable
 {
@@ -10,6 +11,9 @@ namespace BlazorTable
     {
         [CascadingParameter(Name = "Column")]
         public IColumn<TableItem> Column { get; set; }
+
+        [Inject]
+        IStringLocalizer<Localization.Localization> Localization { get; set; }
 
         private EnumCondition Condition { get; set; }
 
@@ -87,16 +91,16 @@ namespace BlazorTable
 
         public enum EnumCondition
         {
-            [Description("Is equal to")]
+            [LocalizedDescription("EnumConditionIsEqualTo", typeof(Localization.Localization))]
             IsEqualTo,
 
-            [Description("Is not equal to")]
+            [LocalizedDescription("EnumConditionIsNotEqualTo", typeof(Localization.Localization))]
             IsNotEqualTo,
 
-            [Description("Is null")]
+            [LocalizedDescription("EnumConditionIsNull", typeof(Localization.Localization))]
             IsNull,
 
-            [Description("Is not null")]
+            [LocalizedDescription("EnumConditionIsNotNull", typeof(Localization.Localization))]
             IsNotNull
         }
     }

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using System;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 
 namespace BlazorTable
 {
@@ -36,6 +37,11 @@ namespace BlazorTable
         bool Filterable { get; set; }
 
         /// <summary>
+        /// Column can be hidden
+        /// </summary>
+        bool Hideable { get; set; }
+
+        /// <summary>
         /// Set the format for values if no template
         /// </summary>
         string Format { get; set; }
@@ -46,6 +52,12 @@ namespace BlazorTable
         bool FilterOpen { get; }
 
         /// <summary>
+        /// Column visibility
+        /// True if current column is visible else false.
+        /// </summary>
+        bool Visible { get; set; }
+
+        /// <summary>
         /// Opens/Closes the Filter Panel
         /// </summary>
         void ToggleFilter();
@@ -53,7 +65,7 @@ namespace BlazorTable
         /// <summary>
         /// Sort by this column
         /// </summary>
-        void SortBy();
+        Task SortByAsync();
 
         /// <summary>
         /// Column Data Type

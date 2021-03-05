@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using BlazorTable.Localization;
+using Microsoft.AspNetCore.Components;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq.Expressions;
 
 namespace BlazorTable
@@ -92,16 +92,16 @@ namespace BlazorTable
 
     public enum BooleanCondition
     {
-        [Description("True")]
+        [LocalizedDescription("BooleanConditionTrue", typeof(Localization.Localization))]
         True,
 
-        [Description("False")]
+        [LocalizedDescription("BooleanConditionFalse", typeof(Localization.Localization))]
         False,
 
-        [Description("Is null")]
+        [LocalizedDescription("BooleanConditionIsNull", typeof(Localization.Localization))]
         IsNull,
 
-        [Description("Is not null")]
+        [LocalizedDescription("BooleanConditionIsNotNull", typeof(Localization.Localization))]
         IsNotNull
     }
 }

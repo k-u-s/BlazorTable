@@ -3,6 +3,7 @@ using System;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 
 namespace BlazorTable
 {
@@ -47,6 +48,12 @@ namespace BlazorTable
         /// </summary>
         [Parameter]
         public bool Filterable { get; set; }
+
+        /// <summary>
+        /// Column can be hidden
+        /// </summary>
+        [Parameter]
+        public bool Hideable { get; set; }
 
         /// <summary>
         /// Normal Item Template
@@ -142,6 +149,22 @@ namespace BlazorTable
         /// </summary>
         public bool FilterOpen { get; private set; }
 
+        private bool _visible = true;
+
+        /// <summary>
+        /// Column visibility
+        /// True if current column is visible else false.
+        /// </summary>
+        public bool Visible
+        {
+            get { return _visible; }
+            set 
+            {
+                _visible = value;
+                Table.Refresh();
+            }
+        }
+
         /// <summary>
         /// Column Data Type
         /// </summary>
@@ -203,7 +226,7 @@ namespace BlazorTable
         /// <summary>
         /// Sort by this column
         /// </summary>
-        public void SortBy()
+        public async Task SortByAsync()
         {
             if (Sortable)
             {
@@ -216,7 +239,7 @@ namespace BlazorTable
 
                 SortColumn = true;
 
-                Table.Update();
+                await Table.UpdateAsync().ConfigureAwait(false);
             }
         }
 
