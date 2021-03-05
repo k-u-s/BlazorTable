@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Components;
-using System;
+﻿using System;
+using Microsoft.AspNetCore.Components;
 
-namespace BlazorTable
+namespace BlazorTable.Components
 {
     /// <summary>
     /// A custom row template

@@ -5,11 +5,15 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
+using BlazorTable.Components.ClientSide;
+using BlazorTable.Components.ServerSide;
 
 namespace BlazorTable
 {
     public partial class CustomSelect<TableItem> : IFilter<TableItem>, ICustomSelect
     {
+        private Func<TableItem, object?> _getter;
+        
         [CascadingParameter(Name = "Column")]
         public IColumn<TableItem> Column { get; set; }
 
@@ -25,61 +29,29 @@ namespace BlazorTable
         protected override void OnInitialized()
         {
             Column.FilterControl = this;
-
-            if (Column.Filter?.Body is BinaryExpression binaryExpression
-                && binaryExpression.Right is BinaryExpression logicalBinary
-                && logicalBinary.Right is ConstantExpression constant)
+            var getter = Column.Field.Compile();
+            _getter = tableItem =>
             {
-                switch (logicalBinary.NodeType)
-                {
-                    case ExpressionType.Equal:
-                            Condition = constant.Value == null ? CustomSelectCondition.IsNull : CustomSelectCondition.IsEqualTo;
-                            break;
-                    case ExpressionType.NotEqual:
-                            Condition = constant.Value == null ? CustomSelectCondition.IsNotNull : CustomSelectCondition.IsNotEqualTo;
-                            break;
-                }
+                var objectValue = getter(tableItem);
+                if (objectValue is Enum value)
+                    return value;
 
-                FilterValue = constant.Value;
+                return null;
+            };
+
+            if (Column.Filter is CustomFilterEntry<TableItem> filter)
+            {
+                Condition = filter.Condition;
+                FilterValue = filter.FilterValue;
             }
         }
 
-        public Expression<Func<TableItem, bool>> GetFilter()
+        public FilterEntry GetFilter()
         {
-            return Condition switch
+            return new CustomFilterEntry<TableItem>(_getter)
             {
-                CustomSelectCondition.IsEqualTo =>
-                    Expression.Lambda<Func<TableItem, bool>>(
-                        Expression.AndAlso(
-                            Column.Field.Body.CreateNullChecks(),
-                            Expression.Equal(
-                                Expression.Convert(Column.Field.Body, Column.Type.GetNonNullableType()),
-                                Expression.Constant(Convert.ChangeType(FilterValue, Column.Type.GetNonNullableType(), CultureInfo.InvariantCulture)))),
-                        Column.Field.Parameters),
-
-                CustomSelectCondition.IsNotEqualTo => Expression.Lambda<Func<TableItem, bool>>(
-                    Expression.AndAlso(
-                        Column.Field.Body.CreateNullChecks(),
-                        Expression.NotEqual(
-                            Expression.Convert(Column.Field.Body, Column.Type.GetNonNullableType()),
-                            Expression.Constant(Convert.ChangeType(FilterValue, Column.Type.GetNonNullableType(), CultureInfo.InvariantCulture)))),
-                    Column.Field.Parameters),
-
-                CustomSelectCondition.IsNull =>
-                    Expression.Lambda<Func<TableItem, bool>>(
-                        Expression.AndAlso(
-                            Column.Field.Body.CreateNullChecks(true),
-                            Expression.Equal(Column.Field.Body, Expression.Constant(null))),
-                        Column.Field.Parameters),
-
-                CustomSelectCondition.IsNotNull =>
-                    Expression.Lambda<Func<TableItem, bool>>(
-                        Expression.AndAlso(
-                            Column.Field.Body.CreateNullChecks(true),
-                            Expression.NotEqual(Column.Field.Body, Expression.Constant(null))),
-                        Column.Field.Parameters),
-
-                _ => throw new ArgumentException(Condition + " is not defined!"),
+                Condition = Condition,
+                FilterValue = FilterValue
             };
         }
 
@@ -95,6 +67,36 @@ namespace BlazorTable
             StateHasChanged();
         }
 
+
+        public class CustomFilterEntry<TableItem> : InMemoryFilterEntry<TableItem>
+        {
+            private Func<TableItem, object?> _getter;
+        
+            public CustomSelectCondition Condition { get; set; }
+            public object FilterValue { get; set; }
+        
+            public CustomFilterEntry(Func<TableItem, object?> getter)
+            {
+                _getter = getter;
+            }
+
+            public override IQueryable<TableItem> Filter(IQueryable<TableItem> query)
+            {
+                return Condition switch
+                {
+                    CustomSelectCondition.IsEqualTo => query.Where(el => FilterValue.Equals(_getter(el))),
+
+                    CustomSelectCondition.IsNotEqualTo => query.Where(el => !FilterValue.Equals(_getter(el))),
+
+                    CustomSelectCondition.IsNull => query.Where(el => _getter(el) == null),
+
+                    CustomSelectCondition.IsNotNull => query.Where(el => _getter(el) != null),
+
+                    _ => throw new ArgumentException(Condition + " is not defined!"),
+                };
+            }
+        }
+        
         public enum CustomSelectCondition
         {
             [LocalizedDescription("CustomSelectConditionIsEqualTo", typeof(Localization.Localization))]

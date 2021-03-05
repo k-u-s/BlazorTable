@@ -1,0 +1,36 @@
+﻿@typeparam TItem  
+
+<br>
+<div class="justify-content-md-center">
+    <button class="btn btn-xs btn-secondary" type="button" role="button" @onclick="SelectAll">Select All</button>
+    <button class="btn btn-xs btn-secondary" type="button" role="button" @onclick="UnselectAll">Unselect All</button>
+</div>
+<br>
+<div style=@Style >
+    @if (Data != null)
+    {
+        foreach (var item in FilteredData)
+        {
+            var text = TextField?.Invoke(item);
+            var isChecked = SelectedValues.Contains(item);
+
+            <CheckboxListEntry TItem="TItem"
+                               Value="@item"
+                               Text="@text"
+                               Checked="@isChecked"
+                               OnClick="@CheckboxClicked"/>
+        }
+    }
+</div>
+@if (Data != null && CanFilterValues())
+{
+    <DebounceInput type="text" 
+                   class="form-control form-control-sm" 
+                   placeholder="Search for" 
+                   DebounceTime="@_debounceMilliseconds"
+                   MinLength="@_minCharsLength"
+                   OnValueChanged="RefreshFilterValues"
+                   @bind-value="FilterText" />
+}
+@ChildContent
+  

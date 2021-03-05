@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Linq;
 using System.Linq.Expressions;
+using BlazorTable.Components.ServerSide;
 
 namespace BlazorTable
 {
@@ -10,9 +12,9 @@ namespace BlazorTable
     public interface IFilter<TableItem>
     {
         /// <summary>
-        /// Get Filter Expression
+        /// Get Filter Data
         /// </summary>
         /// <returns></returns>
-        Expression<Func<TableItem, bool>> GetFilter();
+        FilterEntry GetFilter();
     }
 }

@@ -1,12 +1,18 @@
 ﻿using BlazorTable.Localization;
 using Microsoft.AspNetCore.Components;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
+using BlazorTable.Components.ClientSide;
+using BlazorTable.Components.ServerSide;
 
 namespace BlazorTable
 {
     public partial class StringFilter<TableItem> : IFilter<TableItem>
     {
+        private Func<TableItem, string?> _getter;
+        
         [CascadingParameter(Name = "Column")]
         public IColumn<TableItem> Column { get; set; }
 
@@ -15,176 +21,114 @@ namespace BlazorTable
 
         private StringCondition Condition { get; set; }
 
+        private Func<string, string> _textField = el => el;
+        
         private string FilterText { get; set; }
 
-        public Type FilterType => typeof(string);
+        private Lazy<List<string>> _allFilterValues = new (() => new List<string>());
 
+        private List<string> AllFilterValues => _allFilterValues.Value;
+
+        private List<string> SelectedFilterValues { get; set; } = new ();
+        
+        public Type FilterType => typeof(string);
+        
         protected override void OnInitialized()
         {
             if (Column.Type == typeof(string))
             {
                 Column.FilterControl = this;
+                _allFilterValues = new (() =>
+                {
+                    var dataLoader = Column.Table.DataLoader;
+                    var result = dataLoader.GetHints(new SearchHints
+                    {
+                        Key = Column.Key,
+                    }).ConfigureAwait(false).GetAwaiter().GetResult();;
+                    return result.Records.ToList();
+                });
+                
+                var getter = Column.Field.Compile();
+                _getter = tableItem =>
+                {
+                    var objectValue = getter(tableItem);
+                    if (objectValue is string value)
+                        return value;
 
+                    return null;
+                };
                 if (Column.Filter != null)
                 {
-                    bool NotCondition = false;
-
-                    Expression method = Column.Filter.Body;
-
-                    if (method is BinaryExpression binary)
+                    if (Column.Filter is StringFilterEntry<TableItem> filter)
                     {
-                        method = binary.Right;
+                        Condition = filter.Condition;
+                        SelectedFilterValues = filter.SelectedFilterValues;
+                        FilterText = filter.FilterText;
                     }
-
-                    if (method is BinaryExpression binary2)
-                    {
-                        NotCondition = binary2.NodeType == ExpressionType.LessThanOrEqual;
-                        method = binary2.Left;
-                    }
-
-                    if (method is UnaryExpression unary1)
-                    {
-                        NotCondition = unary1.NodeType == ExpressionType.Not;
-                        method = unary1.Operand;
-                    }
-
-                    if (method is MethodCallExpression methodCall)
-                    {
-                        if (methodCall.Arguments[0] is ConstantExpression constantExpression)
-                        {
-                            FilterText = constantExpression.Value?.ToString();
-                        }
-
-                        Condition = GetConditionFromMethod(methodCall.Method.Name, NotCondition);
-                    }
+                    
                 }
             }
         }
 
-        private StringCondition GetConditionFromMethod(string method, bool not)
-        {
-            if (not)
-            {
-                return method switch
-                {
-                    nameof(string.IndexOf) => StringCondition.DoesNotContain,
-                    nameof(string.Equals) => StringCondition.IsNotEqualTo,
-                    nameof(string.IsNullOrEmpty) => StringCondition.IsNotNulOrEmpty,
-                    _ => throw new InvalidOperationException("Shouldn't be here"),
-                };
-            }
-
-            return method switch
-            {
-                nameof(string.IndexOf) => StringCondition.Contains,
-                nameof(string.StartsWith) => StringCondition.StartsWith,
-                nameof(string.EndsWith) => StringCondition.EndsWith,
-                nameof(string.Equals) => StringCondition.IsEqualTo,
-                nameof(string.IsNullOrEmpty) => StringCondition.IsNullOrEmpty,
-                _ => throw new InvalidOperationException("Shouldn't be here"),
-            };
-        }
-
-        public Expression<Func<TableItem, bool>> GetFilter()
+        public FilterEntry GetFilter()
         {
             FilterText = FilterText?.Trim();
 
-            if (Condition != StringCondition.IsNullOrEmpty && Condition != StringCondition.IsNotNulOrEmpty && string.IsNullOrEmpty(FilterText))
+            if ((Condition != StringCondition.IsNullOrEmpty && Condition != StringCondition.IsNotNulOrEmpty && string.IsNullOrEmpty(FilterText))
+                && !(Condition == StringCondition.IsOneOf && SelectedFilterValues.Count > 0))
             {
                 return null;
             }
 
-            return Condition switch
+            return new StringFilterEntry<TableItem>(_getter)
             {
-                StringCondition.Contains =>
-                    Expression.Lambda<Func<TableItem, bool>>(
-                        Expression.AndAlso(
-                            Column.Field.Body.CreateNullChecks(),
-                            Expression.GreaterThanOrEqual(
-                                Expression.Call(
-                                    Expression.Call(Column.Field.Body, "ToString", Type.EmptyTypes),
-                                    typeof(string).GetMethod(nameof(string.IndexOf), new[] { typeof(string), typeof(StringComparison) }),
-                                    new[] { Expression.Constant(FilterText), Expression.Constant(StringComparison.OrdinalIgnoreCase) }),
-                                Expression.Constant(0))),
-                        Column.Field.Parameters),
-
-                StringCondition.DoesNotContain =>
-                    Expression.Lambda<Func<TableItem, bool>>(
-                        Expression.AndAlso(
-                            Column.Field.Body.CreateNullChecks(),
-                            Expression.LessThanOrEqual(
-                                Expression.Call(
-                                    Expression.Call(Column.Field.Body, "ToString", Type.EmptyTypes),
-                                    typeof(string).GetMethod(nameof(string.IndexOf), new[] { typeof(string), typeof(StringComparison) }),
-                                    new[] { Expression.Constant(FilterText), Expression.Constant(StringComparison.OrdinalIgnoreCase) }),
-                                Expression.Constant(-1))),
-                        Column.Field.Parameters),
-
-                StringCondition.StartsWith =>
-                    Expression.Lambda<Func<TableItem, bool>>(
-                        Expression.AndAlso(
-                            Column.Field.Body.CreateNullChecks(),
-                            Expression.Call(
-                                Expression.Call(Column.Field.Body, "ToString", Type.EmptyTypes),
-                                typeof(string).GetMethod(nameof(string.StartsWith), new[] { typeof(string), typeof(StringComparison) }),
-                                new[] { Expression.Constant(FilterText), Expression.Constant(StringComparison.OrdinalIgnoreCase) })),
-                        Column.Field.Parameters),
-
-                StringCondition.EndsWith =>
-                    Expression.Lambda<Func<TableItem, bool>>(
-                        Expression.AndAlso(
-                            Column.Field.Body.CreateNullChecks(),
-                            Expression.Call(
-                                Expression.Call(Column.Field.Body, "ToString", Type.EmptyTypes),
-                                typeof(string).GetMethod(nameof(string.EndsWith), new[] { typeof(string), typeof(StringComparison) }),
-                                new[] { Expression.Constant(FilterText), Expression.Constant(StringComparison.OrdinalIgnoreCase) })),
-                        Column.Field.Parameters),
-
-                StringCondition.IsEqualTo =>
-                    Expression.Lambda<Func<TableItem, bool>>(
-                        Expression.AndAlso(
-                            Column.Field.Body.CreateNullChecks(),
-                            Expression.Call(
-                                Expression.Call(Column.Field.Body, "ToString", Type.EmptyTypes),
-                                typeof(string).GetMethod(nameof(string.Equals), new[] { typeof(string), typeof(StringComparison) }),
-                                new[] { Expression.Constant(FilterText), Expression.Constant(StringComparison.OrdinalIgnoreCase) })),
-                        Column.Field.Parameters),
-
-                StringCondition.IsNotEqualTo =>
-                    Expression.Lambda<Func<TableItem, bool>>(
-                        Expression.AndAlso(
-                            Column.Field.Body.CreateNullChecks(),
-                            Expression.Not(
-                                Expression.Call(
-                                    Expression.Call(Column.Field.Body, "ToString", Type.EmptyTypes),
-                                    typeof(string).GetMethod(nameof(string.Equals), new[] { typeof(string), typeof(StringComparison) }),
-                                    new[] { Expression.Constant(FilterText), Expression.Constant(StringComparison.OrdinalIgnoreCase) }))),
-                        Column.Field.Parameters),
-
-                StringCondition.IsNullOrEmpty =>
-                    Expression.Lambda<Func<TableItem, bool>>(
-                        Expression.AndAlso(
-                            Column.Field.Body.CreateNullChecks(true),
-                            Expression.Call(
-                                typeof(string).GetMethod(nameof(string.IsNullOrEmpty), new[] { typeof(string) }),
-                            Expression.Call(Column.Field.Body, "ToString", Type.EmptyTypes))),
-                        Column.Field.Parameters),
-
-                StringCondition.IsNotNulOrEmpty =>
-                    Expression.Lambda<Func<TableItem, bool>>(
-                        Expression.AndAlso(
-                            Column.Field.Body.CreateNullChecks(true),
-                            Expression.Not(
-                                Expression.Call(
-                                    typeof(string).GetMethod(nameof(string.IsNullOrEmpty), new[] { typeof(string) }),
-                            Expression.Call(Column.Field.Body, "ToString", Type.EmptyTypes)))),
-                        Column.Field.Parameters),
-
-                _ => throw new ArgumentException(Condition + " is not defined!"),
+                Condition = Condition,
+                FilterText = FilterText,
+                SelectedFilterValues = SelectedFilterValues
             };
         }
     }
 
+    public class StringFilterEntry<TableItem> : InMemoryFilterEntry<TableItem>
+    {
+        private Func<TableItem, string?> _getter;
+        
+        public StringCondition Condition { get; set; }
+        public string FilterText { get; set; }
+        public List<string> SelectedFilterValues { get; set; }
+
+        public StringFilterEntry(Func<TableItem, string?> getter)
+        {
+            _getter = getter;
+        }
+        
+        public override IQueryable<TableItem> Filter(IQueryable<TableItem> query)
+        {
+            return Condition switch
+            {
+                StringCondition.Contains => query.Where(el => _getter(el).Contains(FilterText)),
+
+                StringCondition.DoesNotContain => query.Where(el => !_getter(el).Contains(FilterText)),
+
+                StringCondition.StartsWith => query.Where(el => _getter(el).StartsWith(FilterText)),
+
+                StringCondition.EndsWith => query.Where(el => _getter(el).EndsWith(FilterText)),
+
+                StringCondition.IsEqualTo => query.Where(el => FilterText.Equals(_getter(el))),
+
+                StringCondition.IsNotEqualTo => query.Where(el => !FilterText.Equals(_getter(el))),
+
+                StringCondition.IsNullOrEmpty => query.Where(el => string.IsNullOrEmpty(_getter(el))),
+
+                StringCondition.IsNotNulOrEmpty => query.Where(el => !string.IsNullOrEmpty(_getter(el))),
+
+                StringCondition.IsOneOf => query.Where(el => SelectedFilterValues.Contains(_getter(el))),
+                
+                _ => throw new ArgumentException(Condition + " is not defined!")
+            };
+        }
+    }
+    
     public enum StringCondition
     {
         [LocalizedDescription("StringConditionContains", typeof(Localization.Localization))]
@@ -209,6 +153,9 @@ namespace BlazorTable
         IsNullOrEmpty,
 
         [LocalizedDescription("StringConditionIsNotNullOrEmpty", typeof(Localization.Localization))]
-        IsNotNulOrEmpty
+        IsNotNulOrEmpty,
+
+        [LocalizedDescription("StringConditionIsOneOf", typeof(Localization.Localization))]
+        IsOneOf
     }
 }

@@ -1,4 +1,4 @@
-﻿@namespace BlazorTable
+﻿@namespace BlazorTable.Components
 @typeparam TableItem
 
 @if (ShowChildContentAtTop)
@@ -14,7 +14,7 @@
 
     <div class="table-responsive">
         <table aria-readonly="@(IsEditMode ? "false" : "true")" role="grid" class="@TableClass" @attributes="UnknownParameters">
-            @if (ShowSearchBar || Columns.Exists(column => !column.Visible))
+            @if (ShowSearchBar || Columns.Any(column => !column.Visible))
             {
                 <thead role="search">
                     <tr>
@@ -23,7 +23,7 @@
                             {
                                 <input type="text" class="form-control form-control-sm float-right ml-3" style="width:33%" value="@GlobalSearch" @onchange="@(x => { GlobalSearch = x.Value.ToString(); UpdateAsync(); })" placeholder="@Localization["TableGlobalSearch"]" />
                             }
-                            @if (Columns.Exists(column => !column.Visible))
+                            @if (Columns.Any(column => !column.Visible))
                             {
                                 <div class="float-right" @onclick="@(_ => VisibilityMenuOpen = !VisibilityMenuOpen)">
                                     <a href="javascript:;" @ref="VisibilityMenuIconRef">
@@ -43,7 +43,7 @@
                                                         @(column.Title)
                                                     </td>
                                                     <td>
-                                                        <div class="float-right" @onclick="@(_ => { column.Visible = true; if (!Columns.Exists(column => !column.Visible)) VisibilityMenuOpen = false;})">
+                                                        <div class="float-right" @onclick="@(_ => { column.Visible = true; if (!Columns.Any(column => !column.Visible)) VisibilityMenuOpen = false;})">
                                                             <a href="javascript:;">
                                                                 <span aria-hidden="true">
                                                                     <img src="_content/BlazorTable/images/plus.png" />
@@ -72,7 +72,7 @@
                     {
                         <th style="width: 1%"></th>
                     }
-                    @foreach (IColumn<TableItem> column in Columns)
+                    @foreach (IColumn<TableItem> column in Columns.OrderBy(c => c.DisplayIndex))
                     {
                         @if (column.Visible)
                         {

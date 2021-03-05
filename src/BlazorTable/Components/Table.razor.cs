@@ -1,8 +1,4 @@
-﻿using LinqKit;
-using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.Localization;
-using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -10,8 +6,13 @@ using System.Text;
 using System.Threading.Tasks;
 using BlazorTable.Components.ServerSide;
 using BlazorTable.Interfaces;
+using LinqKit;
+using Microsoft.AspNetCore.Components;
+using Microsoft.CSharp.RuntimeBinder;
+using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging;
 
-namespace BlazorTable
+namespace BlazorTable.Components
 {
     public partial class Table<TableItem> : ITable<TableItem>
     {
@@ -142,57 +143,14 @@ namespace BlazorTable
 
         protected override async Task OnParametersSetAsync()
         {
+            DataLoader ??= new InMemoryDataLoader<TableItem>(this);
+
+            if (Columns is not null)
+            {
+                
+            }
+            
             await UpdateAsync().ConfigureAwait(false);
-        }
-
-        private IEnumerable<TableItem> GetData()
-        {
-            if (Items == null && ItemsQueryable == null)
-            {
-                return Items;
-            }
-            if (Items != null)
-            {
-                ItemsQueryable = Items.AsQueryable();
-            }
-
-            foreach (var item in Columns)
-            {
-                if (item.Filter != null)
-                {
-                    ItemsQueryable = ItemsQueryable.Where(item.Filter);
-                }
-            }
-
-            if (DataLoader != null)
-            {
-                return ItemsQueryable.ToList();
-            }
-            // Global Search
-            if (!string.IsNullOrEmpty(GlobalSearch))
-            {
-                ItemsQueryable = ItemsQueryable.Where(GlobalSearchQuery(GlobalSearch));
-            }
-
-            TotalCount = ItemsQueryable.Count();
-
-            var sortColumn = Columns.Find(x => x.SortColumn);
-
-            if (sortColumn != null)
-            {
-                ItemsQueryable = sortColumn.SortDescending ?
-                    ItemsQueryable.OrderByDescending(sortColumn.Field) :
-                    ItemsQueryable.OrderBy(sortColumn.Field);
-            }
-
-            // if the current page is filtered out, we should go back to a page that exists
-            if (PageNumber > TotalPages)
-            {
-                PageNumber = TotalPages - 1;
-            }
-
-            // if PageSize is zero, we return all rows and no paging
-            return PageSize <= 0 ? ItemsQueryable.ToList() : ItemsQueryable.Skip(PageNumber * PageSize).Take(PageSize).ToList();
         }
 
         private Dictionary<int, bool> detailsViewOpen = new Dictionary<int, bool>();
@@ -229,35 +187,35 @@ namespace BlazorTable
         /// </summary>
         public async Task UpdateAsync()
         {
-            await LoadServerSideDataAsync().ConfigureAwait(false);
-            FilteredItems = GetData();
+            var result = await LoadDataAsync().ConfigureAwait(false);
+            FilteredItems = result.Records;
             Refresh();
         }
 
-        private async Task LoadServerSideDataAsync()
+        private async Task<PaginationResult<TableItem>> LoadDataAsync()
         {
-            if (DataLoader != null)
+            var sortColumn = Columns.FirstOrDefault(x => x.SortColumn);
+            var sortKey = sortColumn?.Key;
+            var sortDirection = sortColumn?.SortDescending switch
             {
-                var sortColumn = Columns.Find(x => x.SortColumn);
-                var sortExpression = new StringBuilder();
-                if (sortColumn != null)
-                {
-                    sortExpression
-                        .Append(sortColumn.Field.GetPropertyMemberInfo()?.Name)
-                        .Append(' ')
-                        .Append(sortColumn.SortDescending ? "desc" : "asc");
-                }
-
-                var result = await DataLoader.LoadDataAsync(new FilterData
-                {
-                    Top = PageSize,
-                    Skip = PageNumber * PageSize,
-                    Query = GlobalSearch,
-                    OrderBy = sortExpression.ToString()
-                }).ConfigureAwait(false);
-                Items = result.Records;
-                TotalCount = result.Total.GetValueOrDefault(1);
-            }
+                true => SortDirection.Descending,
+                false => SortDirection.Ascending,
+                null => SortDirection.UnSet
+            };
+            var filters = Columns
+                    .Where(el => el.Filter is not null)
+                    .ToDictionary(el => el.Key, el => el.Filter)
+                ;
+            var result = await DataLoader.LoadDataAsync(new FilterData
+            {
+                Top = PageSize,
+                Skip = PageNumber * PageSize,
+                GlobalSearchQuery = GlobalSearch,
+                FilterEntries = filters,
+                OrderBy = sortKey,
+                OrderDirection = sortDirection
+            }).ConfigureAwait(false);
+            return result;
         }
 
         /// <summary>
@@ -273,6 +231,7 @@ namespace BlazorTable
                 column.Type = column.Field?.GetPropertyMemberInfo().GetMemberUnderlyingType();
             }
 
+            column.DisplayIndex = column.DisplayIndex == 0 ? Columns.Count :  column.DisplayIndex;
             Columns.Add(column);
             Refresh();
         }
@@ -375,10 +334,15 @@ namespace BlazorTable
         {
             if (DragSource != null)
             {
-                int index = Columns.FindIndex(a => a == column);
-
-                Columns.Remove(DragSource);
-                Columns.Insert(index, DragSource);
+                var targetColumn = Columns.FirstOrDefault(a => a == column);
+                if (targetColumn is null)
+                    return;
+                
+                var targetIndex = targetColumn.DisplayIndex;
+                foreach (var col in Columns.Where(el => el.DisplayIndex >= targetIndex))
+                    col.DisplayIndex++;
+                
+                DragSource.DisplayIndex = column.DisplayIndex;
                 DragSource = null;
 
                 StateHasChanged();
@@ -503,42 +467,6 @@ namespace BlazorTable
         public void AddCustomRow(CustomRow<TableItem> customRow)
         {
             CustomRows.Add(customRow);
-        }
-
-        private Expression<Func<TableItem, bool>> GlobalSearchQuery(string value)
-        {
-            Expression<Func<TableItem, bool>> expression = null;
-
-            foreach (string keyword in value.Trim().Split(" "))
-            {
-                Expression<Func<TableItem, bool>> tmp = null;
-
-                foreach (var column in Columns.Where(x => x.Field != null))
-                {
-                    var newQuery = Expression.Lambda<Func<TableItem, bool>>(
-                        Expression.AndAlso(
-                            column.Field.Body.CreateNullChecks(),
-                            Expression.GreaterThanOrEqual(
-                                Expression.Call(
-                                    Expression.Call(column.Field.Body, "ToString", Type.EmptyTypes),
-                                    typeof(string).GetMethod(nameof(string.IndexOf), new[] { typeof(string), typeof(StringComparison) }),
-                                    new[] { Expression.Constant(keyword), Expression.Constant(StringComparison.OrdinalIgnoreCase) }),
-                            Expression.Constant(0))),
-                            column.Field.Parameters[0]);
-
-                    if (tmp == null)
-                        tmp = newQuery;
-                    else
-                        tmp = tmp.Or(newQuery);
-                }
-
-                if (expression == null)
-                    expression = tmp;
-                else
-                    expression = expression.And(tmp);
-            }
-
-            return expression;
         }
 
         /// <summary>

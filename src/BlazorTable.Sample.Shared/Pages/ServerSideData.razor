@@ -1,6 +1,7 @@
 ﻿@page "/ServerSideData"
 @inject HttpClient Http
 @using BlazorTable
+@using BlazorTable.Components
 @using BlazorTable.Interfaces
 @using BlazorTable.Components.ServerSide
 
@@ -65,11 +66,11 @@
 
             var data = await _client.GetFromJsonAsync<PersonData[]>("sample-data/MOCK_DATA.json");
             IQueryable<PersonData> query = data.AsQueryable();
-            if (parameters?.Query != null)
+            if (parameters?.GlobalSearchQuery != null)
             {
                 query = query.Where(
-                    x => x.email.ToLowerInvariant().Contains(parameters.Query.ToLowerInvariant()) ||
-                         x.full_name.ToLowerInvariant().Contains(parameters.Query.ToLowerInvariant()));
+                    x => x.email.ToLowerInvariant().Contains(parameters.GlobalSearchQuery.ToLowerInvariant()) ||
+                         x.full_name.ToLowerInvariant().Contains(parameters.GlobalSearchQuery.ToLowerInvariant()));
             }
             if (parameters?.OrderBy != null)
             {

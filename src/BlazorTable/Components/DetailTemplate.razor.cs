@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 
-namespace BlazorTable
+namespace BlazorTable.Components
 {
     /// <summary>
     /// Detail Template

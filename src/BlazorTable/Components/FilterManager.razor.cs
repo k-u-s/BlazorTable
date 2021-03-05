@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 
-namespace BlazorTable
+namespace BlazorTable.Components
 {
     public partial class FilterManager<TableItem>
     {

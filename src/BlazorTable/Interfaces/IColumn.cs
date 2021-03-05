@@ -2,6 +2,8 @@
 using System;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using BlazorTable.Components;
+using BlazorTable.Components.ServerSide;
 
 namespace BlazorTable
 {
@@ -16,6 +18,12 @@ namespace BlazorTable
         /// </summary>
         ITable<TableItem> Table { get; set; }
 
+        /// <summary>
+        /// Set custom Key column value, used by filters and sort
+        /// If empty expresion parameter name is taken
+        /// </summary>
+        string Key { get; set; }
+        
         /// <summary>
         /// Title (Optional, will use Field Name if null)
         /// </summary>
@@ -46,6 +54,11 @@ namespace BlazorTable
         /// </summary>
         string Format { get; set; }
 
+        /// <summary>
+        /// Column can be hidden
+        /// </summary>
+        int DisplayIndex { get; set; }
+        
         /// <summary>
         /// Filter Panel is open
         /// </summary>
@@ -82,7 +95,7 @@ namespace BlazorTable
         /// <summary>
         /// Filter expression
         /// </summary>
-        Expression<Func<TableItem, bool>> Filter { get; set; }
+        FilterEntry Filter { get; set; }
 
         /// <summary>
         /// Edit Mode Item Template

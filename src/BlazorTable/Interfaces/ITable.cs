@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using BlazorTable.Components;
 
 namespace BlazorTable
 {

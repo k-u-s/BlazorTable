@@ -12,7 +12,7 @@
 
     @if (Condition != EnumCondition.IsNull && Condition != EnumCondition.IsNotNull)
     {
-        <select class="form-control form-control-sm" value="@FilterValue" @onchange="@((x) => FilterValue = Enum.Parse(Column.Type.GetNonNullableType(), x.Value.ToString()))">
+        <select class="form-control form-control-sm" value="@FilterValue" @onchange="@((x) => FilterValue = (Enum)Enum.Parse(Column.Type.GetNonNullableType(), x.Value.ToString()))">
             @foreach (var option in Enum.GetValues(Column.Type.GetNonNullableType()))
             {
                 <option value="@option">@((option as Enum).GetDescription() ?? option)</option>

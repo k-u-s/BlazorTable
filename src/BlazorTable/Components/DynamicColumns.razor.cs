@@ -1,12 +1,12 @@
-﻿using Microsoft.AspNetCore.Components;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using Microsoft.AspNetCore.Components;
 
-namespace BlazorTable
+namespace BlazorTable.Components
 {
     /// <summary>
     /// BlazorTable Dynamic Columns

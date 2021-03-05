@@ -9,9 +9,25 @@
             <option value="@option">@option.GetDescription()</option>
         }
     </select>
-    
-    @if (Condition != StringCondition.IsNotNulOrEmpty && Condition != StringCondition.IsNullOrEmpty)
+
+    if (Condition == StringCondition.IsOneOf)
+    {
+        if (Column.Table.DataLoader.IsSearchHintSupported)
+        {
+            <CheckboxList TItem="string"
+                          Data="@AllFilterValues"  
+                          TextField="@_textField"  
+                          SelectedValues="@SelectedFilterValues"/>
+        }
+        else
+        {
+            <div>Current provider do not support this option</div>
+        }
+    }
+    else if (Condition != StringCondition.IsNotNulOrEmpty && Condition != StringCondition.IsNullOrEmpty)
     {
         <input type="text" class="form-control form-control-sm" @bind-value="FilterText" />
     }
+    
+    
 }

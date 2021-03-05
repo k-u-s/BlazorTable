@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using BlazorTable.Components;
+using BlazorTable.Interfaces;
 
 namespace BlazorTable
 {
@@ -38,6 +40,11 @@ namespace BlazorTable
         /// </summary>
         IEnumerable<TableItem> Items { get; set; }
 
+        /// <summary>
+        /// Service to use to query data server side
+        /// </summary>
+        public IDataLoader<TableItem> DataLoader { get; set; }
+        
         /// <summary>
         /// Collection of filtered items
         /// </summary>

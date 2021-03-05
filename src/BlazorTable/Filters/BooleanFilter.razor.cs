@@ -2,12 +2,17 @@
 using Microsoft.AspNetCore.Components;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
+using BlazorTable.Components.ClientSide;
+using BlazorTable.Components.ServerSide;
 
 namespace BlazorTable
 {
     public partial class BooleanFilter<TableItem> : IFilter<TableItem>
     {
+        private Func<TableItem, bool?> _getter;
+        
         [CascadingParameter(Name = "Column")]
         public IColumn<TableItem> Column { get; set; }
 
@@ -23,67 +28,67 @@ namespace BlazorTable
             if (FilterTypes.Contains(Column.Type.GetNonNullableType()))
             {
                 Column.FilterControl = this;
-
-                if (Column.Filter != null)
+                var getter = Column.Field.Compile();
+                _getter = tableItem =>
                 {
-                    var nodeType = Column.Filter.Body.NodeType;
+                    var value = getter(tableItem);
+                    if (value is bool boolValue)
+                        return boolValue;
 
-                    if (Column.Filter.Body is BinaryExpression binaryExpression
-                        && binaryExpression.NodeType == ExpressionType.AndAlso)
-                    {
-                        nodeType = binaryExpression.Right.NodeType;
-                    }
-
-                    switch (nodeType)
-                    {
-                        case ExpressionType.IsTrue:
-                            Condition = BooleanCondition.True;
-                            break;
-                        case ExpressionType.IsFalse:
-                            Condition = BooleanCondition.False;
-                            break;
-                        case ExpressionType.Equal:
-                            Condition = BooleanCondition.IsNull;
-                            break;
-                        case ExpressionType.NotEqual:
-                            Condition = BooleanCondition.IsNotNull;
-                            break;
-                    }
+                    return null;
+                };
+                
+                if (Column.Filter is BooleanFilterEntry<TableItem> filter)
+                {
+                    Condition = filter.Condition;
                 }
             }
         }
 
-        public Expression<Func<TableItem, bool>> GetFilter()
+        private Func<TableItem, bool?> Getter(Func<TableItem, object> arg)
+        {
+            return tableItem =>
+            {
+                var value = arg(tableItem);
+                if (value is bool boolValue)
+                    return boolValue;
+
+                return null;
+            };
+        }
+
+        public FilterEntry GetFilter()
+        {
+            return new BooleanFilterEntry<TableItem>(_getter)
+            {
+                Condition = Condition
+            };
+        }
+        
+    }
+
+    public class BooleanFilterEntry<TableItem> : InMemoryFilterEntry<TableItem>
+    {
+        private Func<TableItem, bool?> _getter;
+        
+        public BooleanCondition Condition { get; set; }
+
+        public BooleanFilterEntry(Func<TableItem, bool?> getter)
+        {
+            _getter = getter;
+        }
+        
+        public override IQueryable<TableItem> Filter(IQueryable<TableItem> query)
         {
             return Condition switch
             {
-                BooleanCondition.True =>
-                    Expression.Lambda<Func<TableItem, bool>>(
-                        Expression.AndAlso(
-                            Column.Field.Body.CreateNullChecks(),
-                            Expression.IsTrue(Expression.Convert(Column.Field.Body, Column.Type.GetNonNullableType()))),
-                        Column.Field.Parameters),
+                BooleanCondition.True => query.Where(el => _getter(el) == true),
 
-                BooleanCondition.False =>
-                    Expression.Lambda<Func<TableItem, bool>>(
-                        Expression.AndAlso(
-                            Column.Field.Body.CreateNullChecks(),
-                            Expression.IsFalse(Expression.Convert(Column.Field.Body, Column.Type.GetNonNullableType()))),
-                            Column.Field.Parameters),
+                BooleanCondition.False => query.Where(el => _getter(el) == false),
 
-                BooleanCondition.IsNull =>
-                    Expression.Lambda<Func<TableItem, bool>>(
-                        Expression.AndAlso(
-                            Column.Field.Body.CreateNullChecks(true),
-                            Expression.Equal(Column.Field.Body, Expression.Constant(null))),
-                        Column.Field.Parameters),
+                BooleanCondition.IsNull => query.Where(el => _getter(el) == null),
 
-                BooleanCondition.IsNotNull =>
-                    Expression.Lambda<Func<TableItem, bool>>(
-                        Expression.AndAlso(
-                            Column.Field.Body.CreateNullChecks(true),
-                            Expression.NotEqual(Column.Field.Body, Expression.Constant(null))),
-                        Column.Field.Parameters),
+                BooleanCondition.IsNotNull => query.Where(el => _getter(el) != null),
 
                 _ => null,
             };

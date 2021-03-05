@@ -1,11 +1,12 @@
-﻿using Microsoft.AspNetCore.Components;
-using System;
+﻿using System;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using BlazorTable.Components.ServerSide;
+using Microsoft.AspNetCore.Components;
 
-namespace BlazorTable
+namespace BlazorTable.Components
 {
     /// <summary>
     /// Table Column
@@ -21,6 +22,13 @@ namespace BlazorTable
 
         private string _title;
 
+        /// <summary>
+        /// Set custom Key column value, used by filters and sort
+        /// If empty expresion parameter name is taken
+        /// </summary>
+        [Parameter]
+        public string Key { get; set; }
+        
         /// <summary>
         /// Title (Optional, will use Field Name if null)
         /// </summary>
@@ -106,6 +114,12 @@ namespace BlazorTable
         public string Format { get; set; }
 
         /// <summary>
+        /// Set the display index
+        /// </summary>
+        [Parameter]
+        public int DisplayIndex { get; set; }
+
+        /// <summary>
         /// Column CSS Class
         /// </summary>
         [Parameter]
@@ -118,9 +132,9 @@ namespace BlazorTable
         public string ColumnFooterClass { get; set; }
 
         /// <summary>
-        /// Filter expression
+        /// Filter data
         /// </summary>
-        public Expression<Func<TableItem, bool>> Filter { get; set; }
+        public FilterEntry Filter { get; set; }
 
         /// <summary>
         /// True if this is the default Sort Column
@@ -208,6 +222,12 @@ namespace BlazorTable
                 throw new InvalidOperationException("A Column has both Title and Property parameters null");
             }
 
+            if (string.IsNullOrWhiteSpace(Key))
+            {
+                Key = Field?.GetPropertyMemberInfo().Name
+                    ?? Guid.NewGuid().ToString();
+            }
+
             if (Type == null)
             {
                 Type = Field?.GetPropertyMemberInfo().GetMemberUnderlyingType();
@@ -235,7 +255,8 @@ namespace BlazorTable
                     SortDescending = !SortDescending;
                 }
 
-                Table.Columns.ForEach(x => x.SortColumn = false);
+                foreach (var col in Table.Columns)
+                    col.SortColumn = false;
 
                 SortColumn = true;
 

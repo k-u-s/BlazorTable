@@ -1,4 +1,4 @@
-﻿namespace BlazorTable
+﻿namespace BlazorTable.Components
 {
     public enum SelectionType
     {

@@ -231,4 +231,7 @@
   <data name="TableLoading" xml:space="preserve">
     <value>Loading...</value>
   </data>
+  <data name="StringConditionIsOneOf" xml:space="preserve">
+    <value>Is one of</value>
+  </data>
 </root>
