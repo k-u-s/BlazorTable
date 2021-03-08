@@ -1,0 +1,25 @@
+﻿@typeparam TableItem
+@typeparam HintItem
+
+@if (Column.FilterControl == this)
+{
+    <select class="form-control form-control-sm" value="@Condition" 
+            @onchange="@((x) => Condition = (MultiSelectCondition)Enum.Parse(typeof(MultiSelectCondition), x.Value.ToString()))">
+        @foreach (MultiSelectCondition option in Enum.GetValues(typeof(MultiSelectCondition)))
+        {
+            <option value="@option">@option.GetDescription()</option>
+        }
+    </select>
+
+    @if (Condition != MultiSelectCondition.IsNull && Condition != MultiSelectCondition.IsNotNull)
+    {
+        <div class="checkbox-list-container">
+            <CheckboxList TItem="HintItem"
+                          Data="@Values"  
+                          DisplayField="@ItemDisplaySelector"  
+                          SelectedValues="@SelectedHints"
+                          OnFilterChanged="RefreshFilterValues"
+                          />
+        </div>
+    }
+}

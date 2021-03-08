@@ -9,20 +9,18 @@
 <div style=@Style >
     @if (Data != null)
     {
-        foreach (var item in FilteredData)
+        foreach (var item in Data)
         {
-            var text = TextField?.Invoke(item);
             var isChecked = SelectedValues.Contains(item);
-
             <CheckboxListEntry TItem="TItem"
                                Value="@item"
-                               Text="@text"
+                               DisplayField="@DisplayField"
                                Checked="@isChecked"
                                OnClick="@CheckboxClicked"/>
         }
     }
 </div>
-@if (Data != null && CanFilterValues())
+@if (Data != null)
 {
     <DebounceInput type="text" 
                    class="form-control form-control-sm" 
@@ -30,7 +28,6 @@
                    DebounceTime="@_debounceMilliseconds"
                    MinLength="@_minCharsLength"
                    OnValueChanged="RefreshFilterValues"
-                   @bind-value="FilterText" />
+                   />
 }
-@ChildContent
   

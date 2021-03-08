@@ -4,8 +4,8 @@ using BlazorTable.Components.ServerSide;
 
 namespace BlazorTable.Interfaces
 {
-    public interface IDataLoader<T>
+    public interface IHintsLoader<HintItem>
     {
-        public Task<PaginationResult<T>> LoadDataAsync(FilterData parameters);
+        public Task<SearchHintsResult<HintItem>> LoadHintsAsync(SearchHints parameters);
     }
 }

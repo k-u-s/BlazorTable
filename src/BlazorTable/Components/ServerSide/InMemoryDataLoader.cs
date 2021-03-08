@@ -11,10 +11,6 @@ namespace BlazorTable.Components.ServerSide
 {
     internal class InMemoryDataLoader<TableItem> : IDataLoader<TableItem>
     {
-        private SearchHintsResult EmptyHints = new()
-        {
-            Records = ArraySegment<string>.Empty
-        };
         private PaginationResult<TableItem> Empty = new()
         {
             Top = 0,
@@ -23,8 +19,6 @@ namespace BlazorTable.Components.ServerSide
             Records = ArraySegment<TableItem>.Empty
         };
         private readonly Table<TableItem> _table;
-
-        public bool IsSearchHintSupported => true;
 
         public InMemoryDataLoader(Table<TableItem> table)
         {
@@ -74,24 +68,6 @@ namespace BlazorTable.Components.ServerSide
                 Total = _table.TotalCount,
                 Skip = parameters.Skip ?? 0,
                 Top = parameters.Top ?? _table.TotalCount,
-            });
-        }
-
-        public Task<SearchHintsResult> GetHints(SearchHints parameters)
-        {
-            var column = _table.Columns.FirstOrDefault(el => el.Key == parameters.Key);
-            if (column is null)
-                return Task.FromResult(EmptyHints);
-            
-            var filledGetter = column.Field.Compile();
-            var allValues = column.Table.Items
-                .Select(el => (string)filledGetter(el))
-                .Distinct()
-                .OrderBy(el => el)
-                .ToList();
-            return Task.FromResult(new SearchHintsResult
-            {
-                Records = allValues
             });
         }
 

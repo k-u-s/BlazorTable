@@ -1,6 +1,7 @@
 ﻿@page "/CustomSelect"
 
 @using BlazorTable
+@using BlazorTable.Addons.Loaders
 
 <h1>CustomSelect</h1>
 
@@ -18,6 +19,14 @@
             </CustomSelect>
         </CustomIFilters>
     </Column>
+    <Column TableItem="PersonData" Title="email" Field="@(x => x.email)" Sortable="true" Filterable="true" Width="20%">
+        <CustomIFilters>
+            <MultiSelect TableItem="PersonData"
+                         HintItem="string"
+                         HintsLoader="_hintLoader"
+                         />
+        </CustomIFilters>
+    </Column>
 </Table>
 
 @code
@@ -25,11 +34,14 @@
     [Inject]
     private HttpClient Http { get; set; }
 
+    private InMemoryHintsLoader<string> _hintLoader;    
+    
     private PersonData[] data;
 
     protected override async Task OnInitializedAsync()
     {
         data = await Http.GetFromJsonAsync<PersonData[]>("sample-data/MOCK_DATA.json");
+        _hintLoader = new InMemoryHintsLoader<string>(data.Select(el => el.email));
     }
 
     public class PersonData

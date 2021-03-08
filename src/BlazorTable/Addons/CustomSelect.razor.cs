@@ -1,14 +1,11 @@
-﻿using BlazorTable.Localization;
-using Microsoft.AspNetCore.Components;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using System.Linq.Expressions;
 using BlazorTable.Components.ClientSide;
 using BlazorTable.Components.ServerSide;
+using Microsoft.AspNetCore.Components;
 
-namespace BlazorTable
+namespace BlazorTable.Addons
 {
     public partial class CustomSelect<TableItem> : IFilter<TableItem>, ICustomSelect
     {
@@ -66,7 +63,6 @@ namespace BlazorTable
 
             StateHasChanged();
         }
-
 
         public class CustomFilterEntry<TableItem> : InMemoryFilterEntry<TableItem>
         {

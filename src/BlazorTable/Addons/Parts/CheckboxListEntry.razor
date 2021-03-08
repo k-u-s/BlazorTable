@@ -4,7 +4,7 @@
     <div class="custom-control custom-checkbox">
         <input class="custom-control-input" type="checkbox" checked=@Checked id="@Value" value="@Value"
             @onclick="@(eventArgs => { OnClick?.Invoke(Value, Checked); })">
-        <label class="custom-control-label" for="@Value">@Text</label>
+        <label class="custom-control-label" for="@Value">@DisplayField(Value)</label>
     </div>
 </div>
   

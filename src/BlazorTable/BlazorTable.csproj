@@ -60,4 +60,9 @@
     </EmbeddedResource>
   </ItemGroup>
   
+  <ItemGroup>
+    <_ContentIncludedByDefault Remove="Filters\Parts\CheckboxList.razor" />
+    <_ContentIncludedByDefault Remove="Filters\Parts\CheckboxListEntry.razor" />
+  </ItemGroup>
+  
 </Project>

@@ -25,12 +25,6 @@ namespace BlazorTable
         
         private string FilterText { get; set; }
 
-        private Lazy<List<string>> _allFilterValues = new (() => new List<string>());
-
-        private List<string> AllFilterValues => _allFilterValues.Value;
-
-        private List<string> SelectedFilterValues { get; set; } = new ();
-        
         public Type FilterType => typeof(string);
         
         protected override void OnInitialized()
@@ -38,15 +32,6 @@ namespace BlazorTable
             if (Column.Type == typeof(string))
             {
                 Column.FilterControl = this;
-                _allFilterValues = new (() =>
-                {
-                    var dataLoader = Column.Table.DataLoader;
-                    var result = dataLoader.GetHints(new SearchHints
-                    {
-                        Key = Column.Key,
-                    }).ConfigureAwait(false).GetAwaiter().GetResult();;
-                    return result.Records.ToList();
-                });
                 
                 var getter = Column.Field.Compile();
                 _getter = tableItem =>
@@ -62,10 +47,8 @@ namespace BlazorTable
                     if (Column.Filter is StringFilterEntry<TableItem> filter)
                     {
                         Condition = filter.Condition;
-                        SelectedFilterValues = filter.SelectedFilterValues;
                         FilterText = filter.FilterText;
                     }
-                    
                 }
             }
         }
@@ -74,8 +57,7 @@ namespace BlazorTable
         {
             FilterText = FilterText?.Trim();
 
-            if ((Condition != StringCondition.IsNullOrEmpty && Condition != StringCondition.IsNotNulOrEmpty && string.IsNullOrEmpty(FilterText))
-                && !(Condition == StringCondition.IsOneOf && SelectedFilterValues.Count > 0))
+            if (Condition != StringCondition.IsNullOrEmpty && Condition != StringCondition.IsNotNulOrEmpty && string.IsNullOrEmpty(FilterText))
             {
                 return null;
             }
@@ -83,8 +65,7 @@ namespace BlazorTable
             return new StringFilterEntry<TableItem>(_getter)
             {
                 Condition = Condition,
-                FilterText = FilterText,
-                SelectedFilterValues = SelectedFilterValues
+                FilterText = FilterText
             };
         }
     }
@@ -95,7 +76,6 @@ namespace BlazorTable
         
         public StringCondition Condition { get; set; }
         public string FilterText { get; set; }
-        public List<string> SelectedFilterValues { get; set; }
 
         public StringFilterEntry(Func<TableItem, string?> getter)
         {
@@ -121,8 +101,6 @@ namespace BlazorTable
                 StringCondition.IsNullOrEmpty => query.Where(el => string.IsNullOrEmpty(_getter(el))),
 
                 StringCondition.IsNotNulOrEmpty => query.Where(el => !string.IsNullOrEmpty(_getter(el))),
-
-                StringCondition.IsOneOf => query.Where(el => SelectedFilterValues.Contains(_getter(el))),
                 
                 _ => throw new ArgumentException(Condition + " is not defined!")
             };
@@ -154,8 +132,5 @@ namespace BlazorTable
 
         [LocalizedDescription("StringConditionIsNotNullOrEmpty", typeof(Localization.Localization))]
         IsNotNulOrEmpty,
-
-        [LocalizedDescription("StringConditionIsOneOf", typeof(Localization.Localization))]
-        IsOneOf
     }
 }
