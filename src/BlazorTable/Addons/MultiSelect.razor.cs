@@ -18,6 +18,7 @@ namespace BlazorTable.Addons
         private Func<TableItem, object?> _getter;
 
         [CascadingParameter(Name = "Column")] public IColumn<TableItem> Column { get; set; }
+        [Parameter] public IReadOnlyCollection<HintItem> Hints { get; set; }
         [Parameter] public IHintsLoader<HintItem> HintsLoader { get; set; }
 
         [Parameter] public RenderFragment<HintItem> ItemDisplaySelector { get; set; } = (el) => builder => builder.AddContent(0, el.ToString());
@@ -28,17 +29,16 @@ namespace BlazorTable.Addons
 
         private List<HintItem> SelectedHints { get; set; }
 
-        protected override Task OnParametersSetAsync()
+        protected override async Task OnParametersSetAsync()
         {
-            if (HintsLoader is null)
-                throw new ArgumentNullException(nameof(HintsLoader));
-            
-            return base.OnParametersSetAsync();
+            await base.OnParametersSetAsync();
+            EnsureParametersValid();
         }
 
         protected override async Task OnInitializedAsync()
         {
             Column.FilterControl = this;
+            EnsureParametersValid();
             _getter = Column.Field.Compile();
             Values = await LoadHintsAsync(string.Empty).ConfigureAwait(false);
 
@@ -65,6 +65,17 @@ namespace BlazorTable.Addons
         {
             Values = await LoadHintsAsync(item).ConfigureAwait(false);
             StateHasChanged();
+        }
+
+        private void EnsureParametersValid()
+        {
+            if (HintsLoader is not null)
+                return;
+
+            if (Hints is not null)
+                HintsLoader = new InMemoryHintsLoader<HintItem>(Hints);
+            else
+                throw new ArgumentNullException(nameof(HintsLoader));
         }
 
         private async Task<List<HintItem>> LoadHintsAsync(string item)

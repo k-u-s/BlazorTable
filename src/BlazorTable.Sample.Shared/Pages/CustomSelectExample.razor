@@ -2,6 +2,7 @@
 
 @using BlazorTable
 @using BlazorTable.Addons.Loaders
+@using System.Collections.Immutable
 
 <h1>CustomSelect</h1>
 
@@ -23,7 +24,7 @@
         <CustomIFilters>
             <MultiSelect TableItem="PersonData"
                          HintItem="string"
-                         HintsLoader="_hintLoader"
+                         Hints="_hints"
                          />
         </CustomIFilters>
     </Column>
@@ -34,14 +35,14 @@
     [Inject]
     private HttpClient Http { get; set; }
 
-    private InMemoryHintsLoader<string> _hintLoader;    
+    private IReadOnlyCollection<string> _hints;    
     
     private PersonData[] data;
 
     protected override async Task OnInitializedAsync()
     {
         data = await Http.GetFromJsonAsync<PersonData[]>("sample-data/MOCK_DATA.json");
-        _hintLoader = new InMemoryHintsLoader<string>(data.Select(el => el.email));
+        _hints = data.Select(el => el.email).ToImmutableSortedSet();
     }
 
     public class PersonData
