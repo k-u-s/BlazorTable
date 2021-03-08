@@ -476,6 +476,14 @@ namespace BlazorTable.Components
         public bool ShowSearchBar { get; set; }
 
         /// <summary>
+        /// Hide invisible columns bar above the table
+        /// </summary>
+        [Parameter]
+        public bool DisableInvisibleColumnsBar { get; set; }
+        
+        private bool ShowInvisibleColumnsBar => !DisableInvisibleColumnsBar && Columns.Any(column => !column.Visible);
+
+        /// <summary>
         /// Show or hide table footer. Hide by default.
         /// </summary>
         [Parameter]

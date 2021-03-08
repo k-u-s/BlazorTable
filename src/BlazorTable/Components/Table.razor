@@ -14,7 +14,7 @@
 
     <div class="table-responsive">
         <table aria-readonly="@(IsEditMode ? "false" : "true")" role="grid" class="@TableClass" @attributes="UnknownParameters">
-            @if (ShowSearchBar || Columns.Any(column => !column.Visible))
+            @if (ShowSearchBar || ShowInvisibleColumnsBar)
             {
                 <thead role="search">
                     <tr>
@@ -23,7 +23,7 @@
                             {
                                 <input type="text" class="form-control form-control-sm float-right ml-3" style="width:33%" value="@GlobalSearch" @onchange="@(x => { GlobalSearch = x.Value.ToString(); UpdateAsync(); })" placeholder="@Localization["TableGlobalSearch"]" />
                             }
-                            @if (Columns.Any(column => !column.Visible))
+                            @if (ShowInvisibleColumnsBar)
                             {
                                 <div class="float-right" @onclick="@(_ => VisibilityMenuOpen = !VisibilityMenuOpen)">
                                     <a href="javascript:;" @ref="VisibilityMenuIconRef">
