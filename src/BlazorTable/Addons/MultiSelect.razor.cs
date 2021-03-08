@@ -18,11 +18,11 @@ namespace BlazorTable.Addons
         private Func<TableItem, object?> _getter;
 
         [CascadingParameter(Name = "Column")] public IColumn<TableItem> Column { get; set; }
-        [Parameter] public IReadOnlyCollection<HintItem> Hints { get; set; }
         [Parameter] public IHintsLoader<HintItem> HintsLoader { get; set; }
 
         [Parameter] public RenderFragment<HintItem> ItemDisplaySelector { get; set; } = (el) => builder => builder.AddContent(0, el.ToString());
 
+        private IReadOnlyCollection<HintItem> _hints { get; set; }
         private List<HintItem> Values { get; set; } = new();
 
         private MultiSelectCondition Condition { get; set; }
@@ -38,8 +38,8 @@ namespace BlazorTable.Addons
         protected override async Task OnInitializedAsync()
         {
             Column.FilterControl = this;
-            EnsureParametersValid();
             _getter = Column.Field.Compile();
+            EnsureParametersValid();
             Values = await LoadHintsAsync(string.Empty).ConfigureAwait(false);
 
             if (Column.Filter is MultiSelectFilterEntry<TableItem, HintItem> filter)
@@ -72,10 +72,10 @@ namespace BlazorTable.Addons
             if (HintsLoader is not null)
                 return;
 
-            if (Hints is not null)
-                HintsLoader = new InMemoryHintsLoader<HintItem>(Hints);
-            else
-                throw new ArgumentNullException(nameof(HintsLoader));
+            _hints = Column.Table.Items.Select(el => _getter(el))
+                .OfType<HintItem>()
+                .ToList();
+            HintsLoader = new InMemoryHintsLoader<HintItem>(_hints);
         }
 
         private async Task<List<HintItem>> LoadHintsAsync(string item)
