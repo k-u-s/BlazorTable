@@ -83,13 +83,13 @@ namespace BlazorTable
 
                 NumberCondition.IsNotEqualTo => query.Where(el =>  FilterValue.CompareTo(_getter(el)) != 0),
 
-                NumberCondition.IsGreaterThanOrEqualTo => query.Where(el =>  FilterValue.CompareTo(_getter(el)) >= 0),
+                NumberCondition.IsGreaterThanOrEqualTo => query.Where(el =>  FilterValue.CompareTo(_getter(el)) <= 0),
 
-                NumberCondition.IsGreaterThan => query.Where(el =>  FilterValue.CompareTo(_getter(el)) > 0),
+                NumberCondition.IsGreaterThan => query.Where(el =>  FilterValue.CompareTo(_getter(el)) < 0),
 
-                NumberCondition.IsLessThanOrEqualTo => query.Where(el =>  FilterValue.CompareTo(_getter(el)) <= 0),
+                NumberCondition.IsLessThanOrEqualTo => query.Where(el =>  FilterValue.CompareTo(_getter(el)) >= 0),
 
-                NumberCondition.IsLessThan => query.Where(el =>  FilterValue.CompareTo(_getter(el)) < 0),
+                NumberCondition.IsLessThan => query.Where(el =>  FilterValue.CompareTo(_getter(el)) > 0),
 
                 NumberCondition.IsNull => query.Where(el => _getter(el) == null),
 

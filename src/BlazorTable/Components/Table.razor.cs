@@ -342,7 +342,7 @@ namespace BlazorTable.Components
                 foreach (var col in Columns.Where(el => el.DisplayIndex >= targetIndex))
                     col.DisplayIndex++;
                 
-                DragSource.DisplayIndex = column.DisplayIndex;
+                DragSource.DisplayIndex = targetIndex;
                 DragSource = null;
 
                 StateHasChanged();
