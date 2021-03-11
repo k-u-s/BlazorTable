@@ -1,48 +1,43 @@
 ﻿using BlazorTable.Localization;
 using Microsoft.AspNetCore.Components;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using BlazorTable.Components.ClientSide;
 using BlazorTable.Components.ServerSide;
+using BlazorTable.Handlers;
 using Microsoft.Extensions.Localization;
 
 namespace BlazorTable
 {
     public partial class EnumFilter<TableItem> : IFilter<TableItem>
     {
-        private Func<TableItem, Enum?> _getter;
-        
         [CascadingParameter(Name = "Column")]
         public IColumn<TableItem> Column { get; set; }
 
         [Inject]
         IStringLocalizer<Localization.Localization> Localization { get; set; }
 
-        private EnumCondition Condition { get; set; }
+        internal EnumCondition Condition { get; set; }
 
-        private Enum FilterValue { get; set; }
+        internal Enum FilterValue { get; set; }
 
         protected override void OnInitialized()
         {
             if (Column.Type.GetNonNullableType().IsEnum)
             {
                 Column.FilterControl = this;
-                var getter = Column.Field.Compile();
-                _getter = tableItem =>
+                if (Column.Filter?.Source != nameof(EnumFilter<TableItem>))
+                    return;
+                
+                if(Enum.TryParse<EnumCondition>(Column.Filter.Condition, out var condition))
                 {
-                    var objectValue = getter(tableItem);
-                    if (objectValue is Enum value)
-                        return value;
-
-                    return null;
-                };
-
-                if (Column.Filter is EnumFilterEntry<TableItem> filter)
-                {
-                    Condition = filter.Condition;
-                    FilterValue = filter.FilterValue;
+                    Condition = condition;
+                    var parmName = nameof(FilterValue);
+                    if (Column.Filter.Parameters.ContainsKey(parmName))
+                        FilterValue = Column.Filter.Parameters[parmName] as Enum;
                 }
 
                 if (FilterValue == null)
@@ -54,55 +49,31 @@ namespace BlazorTable
 
         public FilterEntry GetFilter()
         {
-            return new EnumFilterEntry<TableItem>(_getter)
+            return new ()
             {
-                Condition = Condition,
-                FilterValue = FilterValue
+                Key = Column.Key,
+                Source = nameof(EnumFilter<TableItem>),
+                Condition = Condition.ToString(),
+                Parameters = new Dictionary<string, object>()
+                {
+                    {nameof(FilterValue), FilterValue}
+                }
             };
         }
+    }
 
-        public class EnumFilterEntry<TableItem> : InMemoryFilterEntry<TableItem>
-        {
-            private Func<TableItem, Enum?> _getter;
-        
-            public EnumCondition Condition { get; set; }
-            public Enum FilterValue { get; set; }
-        
-            public EnumFilterEntry(Func<TableItem, Enum?> getter)
-            {
-                _getter = getter;
-            }
+    public enum EnumCondition
+    {
+        [LocalizedDescription("EnumConditionIsEqualTo", typeof(Localization.Localization))]
+        IsEqualTo,
 
-            public override IQueryable<TableItem> Filter(IQueryable<TableItem> query)
-            {
-                return Condition switch
-                {
-                    EnumCondition.IsEqualTo => query.Where(el => FilterValue.CompareTo(_getter(el)) == 0),
+        [LocalizedDescription("EnumConditionIsNotEqualTo", typeof(Localization.Localization))]
+        IsNotEqualTo,
 
-                    EnumCondition.IsNotEqualTo => query.Where(el =>  FilterValue.CompareTo(_getter(el)) != 0),
+        [LocalizedDescription("EnumConditionIsNull", typeof(Localization.Localization))]
+        IsNull,
 
-                    EnumCondition.IsNull => query.Where(el => _getter(el) == null),
-
-                    EnumCondition.IsNotNull => query.Where(el => _getter(el) != null),
-
-                    _ => throw new ArgumentException(Condition + " is not defined!"),
-                };
-            }
-        }
-
-        public enum EnumCondition
-        {
-            [LocalizedDescription("EnumConditionIsEqualTo", typeof(Localization.Localization))]
-            IsEqualTo,
-
-            [LocalizedDescription("EnumConditionIsNotEqualTo", typeof(Localization.Localization))]
-            IsNotEqualTo,
-
-            [LocalizedDescription("EnumConditionIsNull", typeof(Localization.Localization))]
-            IsNull,
-
-            [LocalizedDescription("EnumConditionIsNotNull", typeof(Localization.Localization))]
-            IsNotNull
-        }
+        [LocalizedDescription("EnumConditionIsNotNull", typeof(Localization.Localization))]
+        IsNotNull
     }
 }

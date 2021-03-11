@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using BlazorTable.Addons.Handlers;
 using BlazorTable.Components.ClientSide;
 using BlazorTable.Components.ServerSide;
 using Microsoft.AspNetCore.Components;
@@ -9,103 +10,73 @@ namespace BlazorTable.Addons
 {
     public partial class CustomSelect<TableItem> : IFilter<TableItem>, ICustomSelect
     {
-        private Func<TableItem, object?> _getter;
-        
         [CascadingParameter(Name = "Column")]
         public IColumn<TableItem> Column { get; set; }
 
         [Parameter]
         public RenderFragment ChildContent { get; set; }
 
-        private List<KeyValuePair<string, object>> Items = new List<KeyValuePair<string, object>>();
+        private List<KeyValuePair<string, object>> _items = new List<KeyValuePair<string, object>>();
 
         private CustomSelectCondition Condition { get; set; }
 
-        private object FilterValue { get; set; }
+        internal object FilterValue { get; set; }
 
         protected override void OnInitialized()
         {
             Column.FilterControl = this;
-            var getter = Column.Field.Compile();
-            _getter = tableItem =>
-            {
-                var objectValue = getter(tableItem);
-                if (objectValue is Enum value)
-                    return value;
 
-                return null;
-            };
-
-            if (Column.Filter is CustomFilterEntry<TableItem> filter)
+            if (Column.Filter?.Source != nameof(CustomSelect<TableItem>))
+                return;
+                
+            if(Enum.TryParse<CustomSelectCondition>(Column.Filter.Condition, out var condition))
             {
-                Condition = filter.Condition;
-                FilterValue = filter.FilterValue;
+                Condition = condition;
+                var parmName = nameof(FilterValue);
+                if (Column.Filter.Parameters.ContainsKey(parmName))
+                    FilterValue = Column.Filter.Parameters[parmName];
             }
         }
 
         public FilterEntry GetFilter()
         {
-            return new CustomFilterEntry<TableItem>(_getter)
+            return new ()
             {
-                Condition = Condition,
-                FilterValue = FilterValue
+                Key = Column.Key,
+                Source = nameof(CustomSelect<TableItem>),
+                Condition = Condition.ToString(),
+                Parameters = new Dictionary<string, object>()
+                {
+                    {nameof(FilterValue), FilterValue}
+                }
             };
         }
 
         public void AddSelect(string key, object value)
         {
-            Items.Add(new KeyValuePair<string, object>(key, value));
+            _items.Add(new KeyValuePair<string, object>(key, value));
 
             if (FilterValue == null)
             {
-                FilterValue = Items.FirstOrDefault().Value;
+                FilterValue = _items.FirstOrDefault().Value;
             }
 
             StateHasChanged();
         }
-
-        public class CustomFilterEntry<TableItem> : InMemoryFilterEntry<TableItem>
-        {
-            private Func<TableItem, object?> _getter;
+    }
         
-            public CustomSelectCondition Condition { get; set; }
-            public object FilterValue { get; set; }
-        
-            public CustomFilterEntry(Func<TableItem, object?> getter)
-            {
-                _getter = getter;
-            }
+    public enum CustomSelectCondition
+    {
+        [LocalizedDescription("CustomSelectConditionIsEqualTo", typeof(Localization.Localization))]
+        IsEqualTo,
 
-            public override IQueryable<TableItem> Filter(IQueryable<TableItem> query)
-            {
-                return Condition switch
-                {
-                    CustomSelectCondition.IsEqualTo => query.Where(el => FilterValue.Equals(_getter(el))),
+        [LocalizedDescription("CustomSelectConditionIsNotEqualTo", typeof(Localization.Localization))]
+        IsNotEqualTo,
 
-                    CustomSelectCondition.IsNotEqualTo => query.Where(el => !FilterValue.Equals(_getter(el))),
+        [LocalizedDescription("CustomSelectConditionIsNull", typeof(Localization.Localization))]
+        IsNull,
 
-                    CustomSelectCondition.IsNull => query.Where(el => _getter(el) == null),
-
-                    CustomSelectCondition.IsNotNull => query.Where(el => _getter(el) != null),
-
-                    _ => throw new ArgumentException(Condition + " is not defined!"),
-                };
-            }
-        }
-        
-        public enum CustomSelectCondition
-        {
-            [LocalizedDescription("CustomSelectConditionIsEqualTo", typeof(Localization.Localization))]
-            IsEqualTo,
-
-            [LocalizedDescription("CustomSelectConditionIsNotEqualTo", typeof(Localization.Localization))]
-            IsNotEqualTo,
-
-            [LocalizedDescription("CustomSelectConditionIsNull", typeof(Localization.Localization))]
-            IsNull,
-
-            [LocalizedDescription("CustomSelectConditionIsNotNull", typeof(Localization.Localization))]
-            IsNotNull
-        }
+        [LocalizedDescription("CustomSelectConditionIsNotNull", typeof(Localization.Localization))]
+        IsNotNull
     }
 }

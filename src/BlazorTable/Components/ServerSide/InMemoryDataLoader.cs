@@ -18,11 +18,14 @@ namespace BlazorTable.Components.ServerSide
             Total = 0,
             Records = ArraySegment<TableItem>.Empty
         };
+
+        private readonly FilterKnownHandlers<TableItem> _filterKnownHandlers;
         private readonly Table<TableItem> _table;
 
         public InMemoryDataLoader(Table<TableItem> table)
         {
             _table = table;
+            _filterKnownHandlers = table.FiltersKnown;
         }
 
         public Task<PaginationResult<TableItem>> LoadDataAsync(FilterData parameters)
@@ -44,16 +47,14 @@ namespace BlazorTable.Components.ServerSide
             if (!string.IsNullOrEmpty(parameters.GlobalSearchQuery))
                 query = query.Where(GlobalSearchQuery(parameters.GlobalSearchQuery));
             
-            var filters = _table.Columns
-                .Where(el => el.Filter is not null)
-                .Select(el => el.Filter);
-            foreach (var filter in filters)
+            var filterableColumns = _table.Columns
+                .Where(el => el.Filter is not null);
+            foreach (var column in filterableColumns)
             {
-                if (filter is not InMemoryFilterEntry<TableItem> inMemoryFilter)
-                    throw new ArgumentException("Client side filter have to implement InMemoryFilterEntry.",
-                        nameof(filter));
-                
-                query = inMemoryFilter.Filter(query);
+                var filter = column.Filter;
+                var filterHandler = _filterKnownHandlers.GetHandler(filter)
+                    ?? throw new ArgumentNullException(nameof(filter));
+                query = filterHandler.Filter(filter, column, query);
             }
             
             if (parameters.Skip.HasValue)
@@ -64,7 +65,7 @@ namespace BlazorTable.Components.ServerSide
             
             return Task.FromResult(new PaginationResult<TableItem>
             {
-                Records = query,
+                Records = query.ToList(),
                 Total = _table.TotalCount,
                 Skip = parameters.Skip ?? 0,
                 Top = parameters.Top ?? _table.TotalCount,

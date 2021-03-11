@@ -1,5 +1,4 @@
 ﻿@typeparam TableItem
-@typeparam HintItem
 
 @if (Column.FilterControl == this)
 {
@@ -15,9 +14,9 @@
     {
         <br/>
         <div class="checkbox-list-container">
-            <CheckboxList TItem="HintItem"
-                          Data="@Values"  
+            <CheckboxList TItem="object"
                           DisplayField="@ItemDisplaySelector"  
+                          Data="@Values"  
                           SelectedValues="@SelectedHints"
                           OnFilterChanged="RefreshFilterValues"
                           />

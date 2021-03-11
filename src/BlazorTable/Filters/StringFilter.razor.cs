@@ -6,24 +6,24 @@ using System.Linq;
 using System.Linq.Expressions;
 using BlazorTable.Components.ClientSide;
 using BlazorTable.Components.ServerSide;
+using BlazorTable.Handlers;
 
 namespace BlazorTable
 {
     public partial class StringFilter<TableItem> : IFilter<TableItem>
     {
-        private Func<TableItem, string?> _getter;
-        
         [CascadingParameter(Name = "Column")]
         public IColumn<TableItem> Column { get; set; }
 
         [Inject]
         Microsoft.Extensions.Localization.IStringLocalizer<BlazorTable.Localization.Localization> Localization { get; set; }
 
-        private StringCondition Condition { get; set; }
 
         private Func<string, string> _textField = el => el;
         
-        private string FilterText { get; set; }
+        internal StringCondition Condition { get; set; }
+        
+        internal string FilterText { get; set; }
 
         public Type FilterType => typeof(string);
         
@@ -32,81 +32,34 @@ namespace BlazorTable
             if (Column.Type == typeof(string))
             {
                 Column.FilterControl = this;
+                if (Column.Filter?.Source != nameof(StringFilter<TableItem>))
+                    return;
                 
-                var getter = Column.Field.Compile();
-                _getter = tableItem =>
+                if(Enum.TryParse<StringCondition>(Column.Filter.Condition, out var condition))
                 {
-                    var objectValue = getter(tableItem);
-                    if (objectValue is string value)
-                        return value;
-
-                    return null;
-                };
-                if (Column.Filter != null)
-                {
-                    if (Column.Filter is StringFilterEntry<TableItem> filter)
-                    {
-                        Condition = filter.Condition;
-                        FilterText = filter.FilterText;
-                    }
+                    Condition = condition;
+                    var parmName = nameof(FilterText);
+                    if (Column.Filter.Parameters.ContainsKey(parmName))
+                        FilterText = Column.Filter.Parameters[parmName]?.ToString();
                 }
             }
         }
 
         public FilterEntry GetFilter()
         {
-            FilterText = FilterText?.Trim();
-
-            if (Condition != StringCondition.IsNullOrEmpty && Condition != StringCondition.IsNotNulOrEmpty && string.IsNullOrEmpty(FilterText))
+            return new ()
             {
-                return null;
-            }
-
-            return new StringFilterEntry<TableItem>(_getter)
-            {
-                Condition = Condition,
-                FilterText = FilterText
+                Key = Column.Key,
+                Source = nameof(NumberFilter<TableItem>),
+                Condition = Condition.ToString(),
+                Parameters = new Dictionary<string, object>()
+                {
+                    {nameof(FilterText), FilterText}
+                }
             };
         }
     }
 
-    public class StringFilterEntry<TableItem> : InMemoryFilterEntry<TableItem>
-    {
-        private Func<TableItem, string?> _getter;
-        
-        public StringCondition Condition { get; set; }
-        public string FilterText { get; set; }
-
-        public StringFilterEntry(Func<TableItem, string?> getter)
-        {
-            _getter = getter;
-        }
-        
-        public override IQueryable<TableItem> Filter(IQueryable<TableItem> query)
-        {
-            return Condition switch
-            {
-                StringCondition.Contains => query.Where(el => _getter(el).Contains(FilterText)),
-
-                StringCondition.DoesNotContain => query.Where(el => !_getter(el).Contains(FilterText)),
-
-                StringCondition.StartsWith => query.Where(el => _getter(el).StartsWith(FilterText)),
-
-                StringCondition.EndsWith => query.Where(el => _getter(el).EndsWith(FilterText)),
-
-                StringCondition.IsEqualTo => query.Where(el => FilterText.Equals(_getter(el))),
-
-                StringCondition.IsNotEqualTo => query.Where(el => !FilterText.Equals(_getter(el))),
-
-                StringCondition.IsNullOrEmpty => query.Where(el => string.IsNullOrEmpty(_getter(el))),
-
-                StringCondition.IsNotNulOrEmpty => query.Where(el => !string.IsNullOrEmpty(_getter(el))),
-                
-                _ => throw new ArgumentException(Condition + " is not defined!")
-            };
-        }
-    }
-    
     public enum StringCondition
     {
         [LocalizedDescription("StringConditionContains", typeof(Localization.Localization))]

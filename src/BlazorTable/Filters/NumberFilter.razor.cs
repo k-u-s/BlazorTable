@@ -1,105 +1,63 @@
 ﻿using BlazorTable.Localization;
 using Microsoft.AspNetCore.Components;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using BlazorTable.Components;
 using BlazorTable.Components.ClientSide;
 using BlazorTable.Components.ServerSide;
+using BlazorTable.Handlers;
 
 namespace BlazorTable
 {
     public partial class NumberFilter<TableItem> : IFilter<TableItem>
     {
-        private Func<TableItem, IComparable?> _getter;
-        
         [CascadingParameter(Name = "Column")]
         public IColumn<TableItem> Column { get; set; }
 
         [Inject]
         Microsoft.Extensions.Localization.IStringLocalizer<BlazorTable.Localization.Localization> Localization { get; set; }
 
-        private NumberCondition Condition { get; set; }
+        internal NumberCondition Condition { get; set; }
 
-        private string FilterValue { get; set; }
+        internal string FilterNumber { get; set; }
 
         protected override void OnInitialized()
         {
             if (Column.Type.IsNumeric() && !Column.Type.GetNonNullableType().IsEnum)
             {
                 Column.FilterControl = this;
-                var getter = Column.Field.Compile();
-                _getter = tableItem =>
+                if (Column.Filter?.Source != nameof(NumberFilter<TableItem>))
+                    return;
+                
+                if(Enum.TryParse<NumberCondition>(Column.Filter.Condition, out var condition))
                 {
-                    var objectValue = getter(tableItem);
-                    if (objectValue is IComparable value)
-                        return value;
-
-                    return null;
-                };
-
-                if (Column.Filter is NumberFilterEntry<TableItem> filter)
-                {
-                    Condition = filter.Condition;
-                    FilterValue = filter.FilterValue.ToString();
+                    Condition = condition;
+                    var parmName = nameof(FilterNumber);
+                    if (Column.Filter.Parameters.ContainsKey(parmName))
+                        FilterNumber = Column.Filter.Parameters[parmName]?.ToString();
                 }
             }
         }
 
         public FilterEntry GetFilter()
         {
-            if (Condition != NumberCondition.IsNull && Condition != NumberCondition.IsNotNull && string.IsNullOrEmpty(FilterValue))
+            var convertedValue = Convert.ChangeType(FilterNumber, Column.Type.GetNonNullableType(), CultureInfo.InvariantCulture);
+            return new ()
             {
-                return null;
-            }
-
-            var convertedValue = Convert.ChangeType(FilterValue, Column.Type.GetNonNullableType(), CultureInfo.InvariantCulture);
-            return new NumberFilterEntry<TableItem>(_getter)
-            {
-                Condition = Condition,
-                FilterValue = convertedValue as IComparable
+                Key = Column.Key,
+                Source = nameof(NumberFilter<TableItem>),
+                Condition = Condition.ToString(),
+                Parameters = new Dictionary<string, object>()
+                {
+                    {nameof(FilterNumber), convertedValue}
+                }
             };
         }
     }
-
-    public class NumberFilterEntry<TableItem> : InMemoryFilterEntry<TableItem>
-    {
-        private Func<TableItem, IComparable?> _getter;
-        
-        public NumberCondition Condition { get; set; }
-        public IComparable FilterValue { get; set; }
-        
-        public NumberFilterEntry(Func<TableItem, IComparable?> getter)
-        {
-            _getter = getter;
-        }
-
-        public override IQueryable<TableItem> Filter(IQueryable<TableItem> query)
-        {
-            return Condition switch
-            {
-                NumberCondition.IsEqualTo => query.Where(el => FilterValue.CompareTo(_getter(el)) == 0),
-
-                NumberCondition.IsNotEqualTo => query.Where(el =>  FilterValue.CompareTo(_getter(el)) != 0),
-
-                NumberCondition.IsGreaterThanOrEqualTo => query.Where(el =>  FilterValue.CompareTo(_getter(el)) <= 0),
-
-                NumberCondition.IsGreaterThan => query.Where(el =>  FilterValue.CompareTo(_getter(el)) < 0),
-
-                NumberCondition.IsLessThanOrEqualTo => query.Where(el =>  FilterValue.CompareTo(_getter(el)) >= 0),
-
-                NumberCondition.IsLessThan => query.Where(el =>  FilterValue.CompareTo(_getter(el)) > 0),
-
-                NumberCondition.IsNull => query.Where(el => _getter(el) == null),
-
-                NumberCondition.IsNotNull => query.Where(el => _getter(el) != null),
-
-                _ => throw new ArgumentException(Condition + " is not defined!"),
-            };
-        }
-    }
-
+    
     public enum NumberCondition
     {
         [LocalizedDescription("NumberConditionIsEqualTo", typeof(Localization.Localization))]

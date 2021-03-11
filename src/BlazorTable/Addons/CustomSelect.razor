@@ -13,7 +13,7 @@
     @if (Condition != CustomSelectCondition.IsNull && Condition != CustomSelectCondition.IsNotNull)
     {
         <select class="form-control form-control-sm" @onchange="@((x) => FilterValue = x.Value)">
-            @foreach (var option in Items)
+            @foreach (var option in _items)
             {
                 <option value="@option.Value" selected="@(option.Value.Equals(FilterValue))">@option.Key</option>
             }

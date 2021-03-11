@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using BlazorTable.Addons.Handlers;
 using BlazorTable.Addons.Loaders;
 using BlazorTable.Components.ClientSide;
 using BlazorTable.Components.ServerSide;
@@ -13,21 +14,19 @@ using Microsoft.AspNetCore.Components;
 
 namespace BlazorTable.Addons
 {
-    public partial class MultiSelect<TableItem, HintItem> : IFilter<TableItem>
+    public partial class MultiSelect<TableItem> : IFilter<TableItem>
     {
-        private Func<TableItem, object?> _getter;
-
         [CascadingParameter(Name = "Column")] public IColumn<TableItem> Column { get; set; }
-        [Parameter] public IHintsLoader<HintItem> HintsLoader { get; set; }
+        [Parameter] public IHintsLoader<object> HintsLoader { get; set; }
 
-        [Parameter] public RenderFragment<HintItem> ItemDisplaySelector { get; set; } = (el) => builder => builder.AddContent(0, el.ToString());
+        [Parameter] public RenderFragment<object> ItemDisplaySelector { get; set; } = (el) => builder => builder.AddContent(0, el.ToString());
 
-        private IReadOnlyCollection<HintItem> _hints { get; set; }
-        private List<HintItem> Values { get; set; } = new();
+        private IReadOnlyCollection<object> Hints { get; set; }
+        private List<object> Values { get; set; } = new();
 
-        private MultiSelectCondition Condition { get; set; }
+        internal MultiSelectCondition Condition { get; set; }
 
-        private List<HintItem> SelectedHints { get; set; }
+        internal List<object> SelectedHints { get; set; }
 
         protected override async Task OnParametersSetAsync()
         {
@@ -38,26 +37,36 @@ namespace BlazorTable.Addons
         protected override async Task OnInitializedAsync()
         {
             Column.FilterControl = this;
-            _getter = Column.Field.Compile();
             EnsureParametersValid();
             Values = await LoadHintsAsync(string.Empty).ConfigureAwait(false);
-
-            if (Column.Filter is MultiSelectFilterEntry<TableItem, HintItem> filter)
+            try
             {
-                Condition = filter.Condition;
-                SelectedHints = filter.SelectedHints;
-            }
+                if (Column.Filter?.Source != nameof(MultiSelect<TableItem>))
+                    return;
 
-            SelectedHints ??= Values.ToList();
+                if (Enum.TryParse<MultiSelectCondition>(Column.Filter.Condition, out var condition))
+                {
+                    Condition = condition;
+                    var parmName = nameof(SelectedHints);
+                    if (Column.Filter.Parameters.ContainsKey(parmName))
+                        SelectedHints = Column.Filter.Parameters[parmName] as List<object>;
+                }
+            }
+            finally
+            {
+                SelectedHints ??= Values.ToList();
+            }
         }
 
 
         public FilterEntry GetFilter()
         {
-            return new MultiSelectFilterEntry<TableItem, HintItem>(_getter)
+            return new ()
             {
-                Condition = Condition,
-                SelectedHints = SelectedHints
+                Key = Column.Key,
+                Source = nameof(MultiSelect<TableItem>),
+                Condition = Condition.ToString(),
+                Parameters = SelectedHints.ToDictionary(el => el.ToString(), el => el)
             };
         }
 
@@ -72,13 +81,13 @@ namespace BlazorTable.Addons
             if (HintsLoader is not null)
                 return;
 
-            _hints = Column.Table.Items.Select(el => _getter(el))
-                .OfType<HintItem>()
+            var getter = Column.Field.Compile();
+            Hints = Column.Table.Items.Select(el => getter(el))
                 .ToList();
-            HintsLoader = new InMemoryHintsLoader<HintItem>(_hints);
+            HintsLoader = new InMemoryHintsLoader(Hints);
         }
 
-        private async Task<List<HintItem>> LoadHintsAsync(string item)
+        private async Task<List<object>> LoadHintsAsync(string item)
         {
             var hintsResult = await HintsLoader.LoadHintsAsync(new()
             {
@@ -89,45 +98,6 @@ namespace BlazorTable.Addons
             }).ConfigureAwait(false);
             var hints = hintsResult.Records.ToList();
             return hints;
-        }
-    }
-
-    public class MultiSelectFilterEntry<TableItem, HintItem> : InMemoryFilterEntry<TableItem>
-    {
-        private Func<TableItem, object?> _getter;
-
-        public MultiSelectCondition Condition { get; set; }
-        public List<HintItem> SelectedHints { get; set; }
-
-        public MultiSelectFilterEntry(Func<TableItem, object?> getter)
-        {
-            _getter = getter;
-        }
-
-        public override IQueryable<TableItem> Filter(IQueryable<TableItem> query)
-        {
-            return Condition switch
-            {
-                MultiSelectCondition.Contains => query.Where(el => Contains(el)),
-
-                MultiSelectCondition.IsNull => query.Where(el => _getter(el) == null),
-
-                MultiSelectCondition.IsNotNull => query.Where(el => _getter(el) != null),
-
-                _ => throw new ArgumentException(Condition + " is not defined!"),
-            };
-        }
-
-        private bool Contains(TableItem item)
-        {
-            var itemValue = _getter(item);
-            var value = itemValue switch
-            {
-                null => false,
-                IFilterable<HintItem> filterable => SelectedHints.Any(hint => filterable.Contains(hint)),
-                object val => SelectedHints.Any(hint => val.ToString().Contains(hint.ToString(), StringComparison.InvariantCultureIgnoreCase)),
-            };
-            return value;
         }
     }
 

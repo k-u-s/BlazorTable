@@ -1,7 +1,7 @@
 ﻿namespace BlazorTable.Interfaces
 {
-    public interface IFilterable<HintItem>
+    public interface IFilterable<THintItem>
     {
-        bool Contains(HintItem item);
+        bool Contains(THintItem item);
     }
 }

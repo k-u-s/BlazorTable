@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
+using BlazorTable.Components.ClientSide;
 using BlazorTable.Components.ServerSide;
 using BlazorTable.Interfaces;
 using LinqKit;
@@ -95,6 +96,9 @@ namespace BlazorTable.Components
 
         [Inject]
         IStringLocalizer<Localization.Localization> Localization { get; set; }
+
+        [Inject]
+        internal FilterKnownHandlers<TableItem> FiltersKnown { get; set; }
 
         /// <summary>
         /// Ref to visibility menu icon for popover display

@@ -4,8 +4,8 @@ using BlazorTable.Components.ServerSide;
 
 namespace BlazorTable.Interfaces
 {
-    public interface IHintsLoader<HintItem>
+    public interface IHintsLoader<THintItem>
     {
-        public Task<SearchHintsResult<HintItem>> LoadHintsAsync(SearchHints parameters);
+        public Task<SearchHintsResult<THintItem>> LoadHintsAsync(SearchHints parameters);
     }
 }
