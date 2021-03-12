@@ -17,7 +17,7 @@ namespace BlazorTable.Addons.Parts
         // The field to be shown adjacent to checkbox  
         [Parameter] public RenderFragment<TItem> DisplayField { get; set; }  
         // CSS Style for the Checkbox container   
-        [Parameter] public string Style { get; set; } = "height: 12rem;overflow-y: scroll;";
+        [Parameter] public string Style { get; set; } = "height: 13rem;margin-top: 0.125rem;overflow-y: scroll;";
         // Event triggered when hints filter changed 
         [Parameter] public Func<string, Task> OnFilterChanged { get; set; }  
         // The array which contains the list of selected checkboxs   
