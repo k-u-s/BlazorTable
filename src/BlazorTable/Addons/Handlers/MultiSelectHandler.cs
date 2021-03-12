@@ -22,10 +22,6 @@ namespace BlazorTable.Addons.Handlers
             if (!Enum.TryParse<MultiSelectCondition>(filter.Condition, out var condition))
                 throw new ArgumentException(nameof(filter.Condition));
 
-            var paramName = nameof(MultiSelect<TableItem>.SelectedHints);
-            if (filter.Parameters.Count == 0)
-                throw new ArgumentException(nameof(filter.Parameters));
-
             var selectedHints = filter.Parameters.Keys;
             var compiled = column.Field.Compile();
             Func<TableItem, object?> getter = el => compiled(el);

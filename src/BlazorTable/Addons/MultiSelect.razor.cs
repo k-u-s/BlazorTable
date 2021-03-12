@@ -47,9 +47,7 @@ namespace BlazorTable.Addons
                 if (Enum.TryParse<MultiSelectCondition>(Column.Filter.Condition, out var condition))
                 {
                     Condition = condition;
-                    var parmName = nameof(SelectedHints);
-                    if (Column.Filter.Parameters.ContainsKey(parmName))
-                        SelectedHints = Column.Filter.Parameters[parmName] as List<object>;
+                    SelectedHints = Column.Filter.Parameters.Values.ToList();
                 }
             }
             finally
