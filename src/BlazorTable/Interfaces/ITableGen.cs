@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using BlazorTable.Components;
+using BlazorTable.Events;
 using BlazorTable.Interfaces;
 
 namespace BlazorTable
@@ -55,6 +56,16 @@ namespace BlazorTable
         /// </summary>
         Action<TableItem> RowClickAction { get; set; }
 
+        /// <summary>
+        /// Callback triggered after sort order changes
+        /// </summary>
+        Action<SortChanged<TableItem>> OnSortChanged { get; set; }
+
+        /// <summary>
+        /// Callback triggered after filter changes
+        /// </summary>
+        Action<FilterChanged<TableItem>> OnFilterChanged { get; set; }
+        
         /// <summary>
         /// Collection of selected items
         /// </summary>

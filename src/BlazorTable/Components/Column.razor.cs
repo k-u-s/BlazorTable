@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using BlazorTable.Components.ServerSide;
+using BlazorTable.Events;
 using Microsoft.AspNetCore.Components;
 
 namespace BlazorTable.Components
@@ -259,6 +260,11 @@ namespace BlazorTable.Components
                     col.SortColumn = false;
 
                 SortColumn = true;
+                
+                Table.OnSortChanged?.Invoke(new SortChanged<TableItem>
+                {
+                    Column = this,
+                });
 
                 await Table.UpdateAsync().ConfigureAwait(false);
             }

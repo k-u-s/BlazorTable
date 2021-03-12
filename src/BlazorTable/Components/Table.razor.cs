@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using BlazorTable.Components.ClientSide;
 using BlazorTable.Components.ServerSide;
+using BlazorTable.Events;
 using BlazorTable.Interfaces;
 using LinqKit;
 using Microsoft.AspNetCore.Components;
@@ -91,6 +92,18 @@ namespace BlazorTable.Components
         [Parameter]
         public string GlobalSearch { get; set; }
 
+        /// <summary>
+        /// Callback triggered after sort order changes
+        /// </summary>
+        [Parameter]
+        public Action<SortChanged<TableItem>> OnSortChanged { get; set; }
+        
+        /// <summary>
+        /// Callback triggered after filter changes
+        /// </summary>
+        [Parameter]
+        public Action<FilterChanged<TableItem>> OnFilterChanged { get; set; }
+        
         [Inject]
         private ILogger<ITable<TableItem>> Logger { get; set; }
 

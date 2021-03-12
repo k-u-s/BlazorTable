@@ -1,5 +1,7 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using BlazorTable.Components;
+using BlazorTable.Events;
 
 namespace BlazorTable
 {
@@ -78,7 +80,7 @@ namespace BlazorTable
         /// Table Head CSS
         /// </summary>
         string TableHeadClass { get; set; }
-
+        
         /// <summary>
         /// Redraws Table without Getting Data
         /// </summary>
