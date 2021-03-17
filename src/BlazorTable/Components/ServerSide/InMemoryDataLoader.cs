@@ -37,7 +37,7 @@ namespace BlazorTable.Components.ServerSide
             if (_table.Items is null)
                 return Task.FromResult(Empty);
             
-            _logger.LogDebug($"Creating query for table items");
+            _logger.LogDebug($"Creating query for table items with {_table.Items.Count} records");
             var query = _table.Items.AsQueryable();
             if (parameters.OrderDirection != SortDirection.UnSet)
             {
@@ -72,7 +72,7 @@ namespace BlazorTable.Components.ServerSide
             if (parameters.Top.HasValue)
                 query = query.Take(parameters.Top.Value);
 
-            var records = query.ToList();
+            var records = query.ToList().AsReadOnly();
             _logger.LogDebug($"Returning {records.Count} records");
             return Task.FromResult(new PaginationResult<TableItem>
             {

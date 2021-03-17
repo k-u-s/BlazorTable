@@ -39,7 +39,7 @@ namespace BlazorTable
         /// <summary>
         /// Collection to display in the table
         /// </summary>
-        IEnumerable<TableItem> Items { get; set; }
+        IReadOnlyCollection<TableItem> Items { get; set; }
 
         /// <summary>
         /// Service to use to query data server side
@@ -49,7 +49,7 @@ namespace BlazorTable
         /// <summary>
         /// Collection of filtered items
         /// </summary>
-        IEnumerable<TableItem> FilteredItems { get; }
+        IReadOnlyCollection<TableItem> FilteredItems { get; }
 
         /// <summary>
         /// Action performed when the row is clicked

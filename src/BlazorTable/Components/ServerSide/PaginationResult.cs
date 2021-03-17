@@ -12,6 +12,6 @@ namespace BlazorTable.Components.ServerSide
 
         public int? Total { get; set; }
 
-        public IEnumerable<T> Records { get; set; }
+        public IReadOnlyCollection<T> Records { get; set; }
     }
 }

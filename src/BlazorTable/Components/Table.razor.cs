@@ -78,7 +78,7 @@ namespace BlazorTable.Components
         /// Collection to display in the table
         /// </summary>
         [Parameter]
-        public IEnumerable<TableItem> Items { get; set; }
+        public IReadOnlyCollection<TableItem> Items { get; set; }
 
         /// <summary>
         /// Service to use to query data server side
@@ -126,7 +126,7 @@ namespace BlazorTable.Components
         /// <summary>
         /// Collection of filtered items
         /// </summary>
-        public IEnumerable<TableItem> FilteredItems { get; private set; }
+        public IReadOnlyCollection<TableItem> FilteredItems { get; private set; }
 
         /// <summary>
         /// List of All Available Columns
