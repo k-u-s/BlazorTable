@@ -160,12 +160,7 @@ namespace BlazorTable.Components
 
         protected override async Task OnParametersSetAsync()
         {
-            DataLoader ??= new InMemoryDataLoader<TableItem>(this);
-
-            if (Columns is not null)
-            {
-                
-            }
+            DataLoader ??= new InMemoryDataLoader<TableItem>(this, Logger);
             
             await UpdateAsync().ConfigureAwait(false);
         }

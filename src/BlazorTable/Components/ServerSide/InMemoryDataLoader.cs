@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using BlazorTable.Components.ClientSide;
 using BlazorTable.Interfaces;
 using LinqKit;
+using Microsoft.Extensions.Logging;
 
 namespace BlazorTable.Components.ServerSide
 {
@@ -21,10 +22,13 @@ namespace BlazorTable.Components.ServerSide
 
         private readonly FilterKnownHandlers<TableItem> _filterKnownHandlers;
         private readonly Table<TableItem> _table;
+        private readonly ILogger _logger;
 
-        public InMemoryDataLoader(Table<TableItem> table)
+        public InMemoryDataLoader(Table<TableItem> table,
+            ILogger<ITable<TableItem>> logger)
         {
             _table = table;
+            _logger = logger;
             _filterKnownHandlers = table.FiltersKnown;
         }
 
@@ -33,17 +37,20 @@ namespace BlazorTable.Components.ServerSide
             if (_table.Items is null)
                 return Task.FromResult(Empty);
             
+            _logger.LogDebug($"Creating query for table items");
             var query = _table.Items.AsQueryable();
             if (parameters.OrderDirection != SortDirection.UnSet)
             {
                 var sortColumn = _table.Columns.FirstOrDefault(el => el.Key == parameters.OrderBy);
                 if (sortColumn is not null)
                 {
+                    _logger.LogDebug($"Sorting by column key {sortColumn.Key} with direction {parameters.OrderDirection}");
                     query = parameters.OrderDirection == SortDirection.Ascending
                         ? query.OrderBy(sortColumn.Field)
                         : query.OrderByDescending(sortColumn.Field);
                 }
             }
+            _logger.LogDebug($"Using global search value: {parameters.GlobalSearchQuery}");
             if (!string.IsNullOrEmpty(parameters.GlobalSearchQuery))
                 query = query.Where(GlobalSearchQuery(parameters.GlobalSearchQuery));
             
@@ -52,20 +59,24 @@ namespace BlazorTable.Components.ServerSide
             foreach (var column in filterableColumns)
             {
                 var filter = column.Filter;
+                _logger.LogDebug($"Filtering by column key {column.Key} with parameters: {filter}");
                 var filterHandler = _filterKnownHandlers.GetHandler(filter)
                     ?? throw new ArgumentNullException(nameof(filter));
                 query = filterHandler.Filter(filter, column, query);
             }
             
+            _logger.LogDebug($"Skipping {parameters.Skip} and taking {parameters.Top} values");
             if (parameters.Skip.HasValue)
                 query = query.Skip(parameters.Skip.Value);
 
             if (parameters.Top.HasValue)
                 query = query.Take(parameters.Top.Value);
-            
+
+            var records = query.ToList();
+            _logger.LogDebug($"Returning {records.Count} records");
             return Task.FromResult(new PaginationResult<TableItem>
             {
-                Records = query.ToList(),
+                Records = records,
                 Total = _table.TotalCount,
                 Skip = parameters.Skip ?? 0,
                 Top = parameters.Top ?? _table.TotalCount,
