@@ -51,6 +51,7 @@ namespace BlazorTable.Components
             if (int.TryParse(args.Value.ToString(), out int result))
             {
                 await Table.SetPageSizeAsync(result).ConfigureAwait(false);
+                StateHasChanged();
             }
         }
     }

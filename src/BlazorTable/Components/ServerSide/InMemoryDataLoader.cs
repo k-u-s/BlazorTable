@@ -64,7 +64,8 @@ namespace BlazorTable.Components.ServerSide
                     ?? throw new ArgumentNullException(nameof(filter));
                 query = filterHandler.Filter(filter, column, query);
             }
-            
+
+            var totalQuery = query.Count();
             _logger.LogDebug($"Skipping {parameters.Skip} and taking {parameters.Top} values");
             if (parameters.Skip.HasValue)
                 query = query.Skip(parameters.Skip.Value);
@@ -77,9 +78,9 @@ namespace BlazorTable.Components.ServerSide
             return Task.FromResult(new PaginationResult<TableItem>
             {
                 Records = records,
-                Total = _table.TotalCount,
+                Total = totalQuery,
                 Skip = parameters.Skip ?? 0,
-                Top = parameters.Top ?? _table.TotalCount,
+                Top = parameters.Top ?? records.Count,
             });
         }
 

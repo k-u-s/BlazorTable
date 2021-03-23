@@ -69,12 +69,6 @@ namespace BlazorTable.Components
         public RenderFragment ChildContent { get; set; }
 
         /// <summary>
-        /// IQueryable data source to display in the table
-        /// </summary>
-        [Parameter]
-        public IQueryable<TableItem> ItemsQueryable { get; set; }
-
-        /// <summary>
         /// Collection to display in the table
         /// </summary>
         [Parameter]
@@ -103,7 +97,13 @@ namespace BlazorTable.Components
         /// </summary>
         [Parameter]
         public Action<FilterChanged<TableItem>> OnFilterChanged { get; set; }
-        
+
+        /// <summary>
+        /// Callback triggered after pagination changes
+        /// </summary>
+        [Parameter]
+        public Action<PaginationChanged<TableItem>> OnPaginationChanged { get; set; }
+
         [Inject]
         private ILogger<ITable<TableItem>> Logger { get; set; }
 
@@ -201,6 +201,14 @@ namespace BlazorTable.Components
         {
             var result = await LoadDataAsync().ConfigureAwait(false);
             FilteredItems = result.Records;
+            TotalCount = result.Total ?? Items.Count;
+            
+            // if the current page is filtered out, we should go back to a page that exists
+            if (PageNumber > TotalPages)
+            {
+                PageNumber = TotalPages - 1;
+            }
+            
             Refresh();
         }
 
@@ -508,6 +516,11 @@ namespace BlazorTable.Components
         public async Task SetPageSizeAsync(int pageSize)
         {
             PageSize = pageSize;
+            OnPaginationChanged?.Invoke(new PaginationChanged<TableItem>
+            {
+                PageNumber = PageNumber,
+                PageRecords = PageSize
+            });
             await UpdateAsync().ConfigureAwait(false);
         }
 

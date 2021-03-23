@@ -276,14 +276,14 @@ namespace BlazorTable.Components
         /// <returns>string results</returns>
         public string GetFooterValue()
         {
-            if (Table.ItemsQueryable != null &&  Aggregate.HasValue && Table.ShowFooter && !string.IsNullOrEmpty(Field.GetPropertyMemberInfo()?.Name))
+            if (Table.FilteredItems != null &&  Aggregate.HasValue && Table.ShowFooter && !string.IsNullOrEmpty(Field.GetPropertyMemberInfo()?.Name))
             {
                 return this.Aggregate.Value switch
                 {
-                    AggregateType.Count => string.Format(CultureInfo.CurrentCulture, $"{{0:{Format}}}", Table.ItemsQueryable.Count()),
-                    AggregateType.Min => string.Format(CultureInfo.CurrentCulture, $"{{0:{Format}}}", Table.ItemsQueryable.AsEnumerable().Min(c => c.GetType().GetProperty(Field.GetPropertyMemberInfo()?.Name).GetValue(c, null))),
-                    AggregateType.Max => string.Format(CultureInfo.CurrentCulture, $"{{0:{Format}}}", Table.ItemsQueryable.AsEnumerable().Max(c => c.GetType().GetProperty(Field.GetPropertyMemberInfo()?.Name).GetValue(c, null))),
-                    _ => string.Format(CultureInfo.CurrentCulture, $"{{0:{Format}}}", Table.ItemsQueryable.Aggregate(Field.GetPropertyMemberInfo()?.Name, this.Aggregate.Value)),
+                    AggregateType.Count => string.Format(CultureInfo.CurrentCulture, $"{{0:{Format}}}", Table.FilteredItems.Count()),
+                    AggregateType.Min => string.Format(CultureInfo.CurrentCulture, $"{{0:{Format}}}", Table.FilteredItems.AsEnumerable().Min(c => c.GetType().GetProperty(Field.GetPropertyMemberInfo()?.Name).GetValue(c, null))),
+                    AggregateType.Max => string.Format(CultureInfo.CurrentCulture, $"{{0:{Format}}}", Table.FilteredItems.AsEnumerable().Max(c => c.GetType().GetProperty(Field.GetPropertyMemberInfo()?.Name).GetValue(c, null))),
+                    _ => string.Format(CultureInfo.CurrentCulture, $"{{0:{Format}}}", Table.FilteredItems.AsQueryable().Aggregate(Field.GetPropertyMemberInfo()?.Name, this.Aggregate.Value)),
                 };
             }
             return string.Empty;

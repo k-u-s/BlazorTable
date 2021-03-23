@@ -32,11 +32,6 @@ namespace BlazorTable
         void RemoveColumn(IColumn<TableItem> column);
 
         /// <summary>
-        /// IQueryable data source to display in the table
-        /// </summary>
-        IQueryable<TableItem> ItemsQueryable { get; set; }
-
-        /// <summary>
         /// Collection to display in the table
         /// </summary>
         IReadOnlyCollection<TableItem> Items { get; set; }
@@ -65,6 +60,11 @@ namespace BlazorTable
         /// Callback triggered after filter changes
         /// </summary>
         Action<FilterChanged<TableItem>> OnFilterChanged { get; set; }
+
+        /// <summary>
+        /// Callback triggered after pagination changes
+        /// </summary>
+        Action<PaginationChanged<TableItem>> OnPaginationChanged { get; set; }
         
         /// <summary>
         /// Collection of selected items
